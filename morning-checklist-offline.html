@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
+<title>어니 혀니 매일 미션</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: one screen, two side-by-side columns (어니 | 혀니). Each column has a gold coin header, a thin progress bar, then compact tap rows. */
+:root {
+  --bg: #eaf3fb;
+  --surface: #ffffff;
+  --ink: #14263d;
+  --muted: #587089;
+  --line: #cfdeee;
+  --coin: #f2b705;
+  --coin-ink: #4d3800;
+  --ok: #1b9a68;
+  --ok-ink: #ffffff;
+  --hl: #2f62e0;
+  --hl-ink: #ffffff;
+  --font-display: "Jua", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1a2a;
+    --surface: #172a40;
+    --ink: #eaf2fb;
+    --muted: #9bb1c7;
+    --line: #29425d;
+    --coin: #f5c542;
+    --coin-ink: #3a2a00;
+    --ok: #4cc795;
+    --ok-ink: #0b2a1d;
+  --hl: #7db2ff;
+  --hl-ink: #06213f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1a2a;
+  --surface: #172a40;
+  --ink: #eaf2fb;
+  --muted: #9bb1c7;
+  --line: #29425d;
+  --coin: #f5c542;
+  --coin-ink: #3a2a00;
+  --ok: #4cc795;
+  --ok-ink: #0b2a1d;
+  --hl: #7db2ff;
+  --hl-ink: #06213f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.4;
+  padding-block: 12px 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+/* 화면을 누르다가 글자가 선택되어 '댓글 추가' 창 같은 것이 뜨지 않도록 글자 선택을 막아요 */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input { -webkit-user-select: text; user-select: text; }
+.wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.top { position: sticky; top: 0; z-index: 30; background: var(--bg); display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px 0 6px; margin-top: -4px; }
+.ctop { position: sticky; top: calc(var(--hh, 44px) + var(--wh, 34px)); z-index: 20; background: var(--bg); display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, calc((100vw - 116px) / 8.6), 36px); letter-spacing: -0.03em; line-height: 1.2; margin: 0; width: 100%; text-align: center; }
+.date { color: var(--muted); font-size: 12px; }
+
+.lock { display: none; background: var(--surface); border: 2px dashed var(--muted); border-radius: 12px; padding: 8px 12px; font-size: 14px; font-weight: 500; text-align: center; }
+.lock.show { display: block; }
+.lock.free { border-style: solid; border-color: var(--ok); }
+.pmhead { margin: 10px 0 6px; min-height: 40px; display: flex; align-items: center; justify-content: center; white-space: pre; background: var(--surface); border: 2px solid var(--ok); border-radius: 12px; padding: 5px 10px; font-size: 13px; font-weight: 500; text-align: center; }
+.pmhead.free { border-style: solid; border-color: var(--ok); }
+.pmhead b { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
+.lock b { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+.week { position: sticky; top: var(--hh, 44px); z-index: 25; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 5px; padding: 2px 0 4px; }
+.wdate { font-family: var(--font-display); font-size: 15px; line-height: 1; margin-right: 4px; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wd { width: 46px; height: 26px; border-radius: 13px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1; cursor: pointer; padding: 0; font-family: inherit; background: linear-gradient(90deg, var(--wl, transparent) 50%, var(--wr, transparent) 50%); }
+.wd.rest { border-style: dashed; opacity: 0.6; }
+.wd.now { border-color: var(--ink); }
+.wd.full { color: var(--ok-ink); }
+.wd.sel { box-shadow: 0 0 0 2px var(--hl); }
+.wdetail { background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 6px 8px; font-size: 12px; }
+.wdetail .dh { display: flex; justify-content: space-between; gap: 6px; font-weight: 700; margin-bottom: 4px; }
+.wdetail .dbg { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+.wdetail .db { background: var(--coin); color: var(--coin-ink); border-radius: 999px; padding: 1px 9px; font-weight: 700; }
+.wdetail .dg { color: var(--muted); font-weight: 700; margin: 4px 0 2px; }
+.wdetail .dl { display: flex; flex-wrap: wrap; gap: 3px; }
+.wdetail .dc { border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; color: var(--muted); text-decoration: line-through; opacity: 0.7; }
+.wdetail .dc.ok { background: var(--ok); border-color: var(--ok); color: var(--ok-ink); text-decoration: none; opacity: 1; font-weight: 700; }
+.grp { margin-top: 14px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 0 8px 8px; position: relative; list-style: none; }
+.grp .gl { display: inline-block; position: relative; top: -11px; margin-bottom: -4px; background: var(--coin); color: var(--coin-ink); border-radius: 999px; padding: 1px 12px; font-size: 12px; font-weight: 700; line-height: 1.6; }
+.sbx { margin-top: 6px; border-top: 1.5px dashed var(--line); padding-top: 5px; text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+.grp ul.gi { gap: 5px; }
+.offbtn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 2; font: inherit; font-size: 12px; line-height: 1.2; white-space: nowrap; text-align: center; font-weight: 700; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 3px 7px; min-height: 0; cursor: pointer; }
+.offbtn.on { border-color: var(--hl); background: var(--hl); color: var(--hl-ink); }
+.offbtn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.offmsg { display: none; background: var(--surface); border: 2px dashed var(--muted); border-radius: 14px; padding: 18px 10px; text-align: center; font-weight: 700; font-size: 15px; line-height: 1.5; }
+.card.off .offmsg { display: block; }
+.card.off ul.am, .card.off .pmhead, .card.off .amhead, .card.off ul.pm, .card.off .cbar, .card.off .cmeta .st { display: none; }
+.mbox .chk { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; padding: 6px 10px; flex: none; border: 2px solid var(--line); border-radius: 12px; }
+.mbox .chk input { width: 20px; height: 20px; }
+.mbox .chk input.etcnote { flex: 1; min-width: 0; width: auto; height: 32px; font-size: 14px; padding: 0 8px; border: 2px solid var(--line); border-radius: 8px; user-select: text; -webkit-user-select: text; }
+.mbox .chk input.numin { width: 84px; height: 32px; font-size: 15px; padding: 0 8px; border: 2px solid var(--line); border-radius: 8px; text-align: right; margin-left: auto; user-select: text; -webkit-user-select: text; }
+.mbox .chk .sec { font-weight: 700; }
+.wdetail .dinfo { margin-top: 8px; padding-top: 6px; border-top: 1.5px dashed var(--line); font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.wdetail .dinfo b { color: var(--ink); }
+.wdetail .dinfo .dv { font-weight: 700; color: var(--ok); }
+.setnow { font-size: 14px; }
+.setsum { text-align: center; font-weight: 700; font-size: 15px; display: flex; flex-direction: column; gap: 2px; }
+.setsum b { color: var(--ok); font-size: 20px; }
+.mbox.wide { width: min(100%, 460px); }
+.irow { border: 2px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; flex: none; }
+.il1 { display: flex; gap: 6px; align-items: center; }
+.mbox .il1 input.iname { flex: 1; min-width: 0; font-size: 15px; padding: 0 8px; height: 34px; }
+.mbox .il1 input.iname:disabled { opacity: .75; }
+.mbox .ibtn { font: inherit; font-weight: 700; font-size: 15px; width: 34px; height: 34px; min-height: 0; padding: 0; border-radius: 8px; border: 2px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; flex: none; }
+.mbox .ibtn:disabled { opacity: .3; cursor: default; }
+.ifs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mbox .ifld { flex: 1; min-width: 0; font-size: 11px; font-weight: 700; color: var(--muted); gap: 2px; }
+.mbox .ifld input { font: inherit; font-size: 14px; width: 100%; min-width: 0; height: 32px; padding: 0 6px; border: 2px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); box-sizing: border-box; user-select: text; -webkit-user-select: text; }
+.ichks { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; }
+.mbox .ichks label { flex-direction: row; align-items: center; gap: 4px; font-weight: 400; font-size: 12px; }
+.mbox .ichks input { width: 16px; height: 16px; }
+.itabs { display: flex; gap: 6px; }
+.mbox .itabs button { font: inherit; font-weight: 700; font-size: 15px; flex: 1; min-height: 38px; border-radius: 10px; border: 2px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.mbox .itabs button[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--ok-ink); }
+.mbox .iadd { font: inherit; font-weight: 700; font-size: 15px; min-height: 40px; border-radius: 10px; border: 2px dashed var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.mbox .chk input.etcnote[hidden] { display: none; }
+.phd { font-size: 13px; font-weight: 700; padding: 0 4px 3px; }
+.phd .num { display: inline-block; min-width: 1.3em; margin-right: 2px; font-family: var(--font-display); font-weight: 400; color: var(--muted); }
+.popts { display: flex; flex-direction: column; gap: 5px; }
+.wb { margin-left: 2px; font-size: 12px; font-weight: 700; color: var(--ok); }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.card { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.chead {
+  background: var(--coin); color: var(--coin-ink);
+  border-radius: 14px; padding: 8px 10px;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 6px; flex-wrap: wrap;
+}
+.cname { font-family: var(--font-display); font-size: 22px; line-height: 1.2; }
+.chead { align-items: center; }
+.cname { margin-right: auto; }
+.cright { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.cname, .ctotal { position: relative; top: 0.12em; } /* Jua 글꼴은 글자가 위쪽에 치우쳐 보여서 살짝 내려요 */
+.ctotal { font-family: var(--font-display); font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.settle { font: inherit; font-size: 15px; font-weight: 700; color: var(--coin-ink); background: transparent; border: 2px solid var(--coin-ink); border-radius: 999px; padding: 3px 12px; min-height: 36px; cursor: pointer; }
+.settle:focus-visible, .srow button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.srow { background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.srow[hidden] { display: none !important; }
+.srow .sb { display: flex; gap: 6px; }
+.srow button { font: inherit; font-weight: 700; color: var(--ink); background: transparent; border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 12px; min-height: 32px; cursor: pointer; }
+.srow .sy { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.bump { animation: bump 0.35s ease-out; display: inline-block; }
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.cmeta { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cmeta { align-items: center; flex-wrap: wrap; }
+.cmeta b { color: var(--ink); }
+.tw { display: inline-flex; align-items: baseline; gap: 4px; background: var(--hl); color: var(--hl-ink); border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 700; }
+.tw .today { color: inherit; font-family: var(--font-display); font-weight: 400; font-size: 22px; line-height: 1.2; }
+.cbar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.cbar > i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 999px; transition: width 0.3s ease; }
+.card.all .cmeta .st { color: var(--ok); font-weight: 700; }
+
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.task {
+  width: 100%;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 5px 8px;
+  cursor: pointer;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.task:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.box {
+  width: 26px; height: 26px; border-radius: 8px;
+  border: 2.5px solid var(--muted);
+  display: grid; place-items: center;
+  color: transparent;
+}
+.box svg { width: 16px; height: 16px; }
+.name { font-size: 13px; font-weight: 500; line-height: 1.3; min-width: 0; overflow-wrap: anywhere; }
+.name .num { display: inline-block; min-width: 1.3em; margin-right: 2px; font-family: var(--font-display); font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.name small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.nbox { margin-top: 4px; border: 1.5px dashed var(--muted); border-radius: 8px; padding: 0 8px; font-size: 11px; font-weight: 500; line-height: 1.5; text-align: center; color: var(--muted); }
+.pay { font-family: var(--font-display); font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.task[aria-pressed="true"] .pay { color: var(--ok); }
+.task[aria-pressed="true"] { border-color: var(--ok); }
+.task[aria-pressed="true"] .box { background: var(--ok); border-color: var(--ok); color: var(--ok-ink); }
+.task[aria-pressed="true"] .name { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.task[aria-disabled="true"] { cursor: not-allowed; opacity: 0.55; }
+.task[aria-disabled="true"][aria-pressed="true"] { opacity: 0.85; }
+.float {
+  position: absolute; right: 6px; top: 2px; pointer-events: none;
+  font-family: var(--font-display); font-size: 13px; color: var(--coin-ink);
+  background: var(--coin); border-radius: 999px; padding: 1px 8px;
+  animation: rise 0.8s ease-out forwards;
+}
+@keyframes rise { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-26px); opacity: 0; } }
+
+.confirm {
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--ink);
+  background: transparent; border: 2px dashed var(--muted); border-radius: 12px;
+  min-height: 46px; padding: 6px 8px; cursor: pointer; margin-top: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+.confirm:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.confirm[aria-pressed="true"] { border-style: solid; border-color: var(--ok); background: var(--ok); color: var(--ok-ink); }
+.confirm[aria-pressed="true"]::before { content: "✓ "; }
+.card .confirm { margin-top: 6px; }
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(8, 18, 32, 0.55); display: flex; align-items: flex-start; justify-content: center; padding: 12px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.modal[hidden] { display: none; }
+.mbox { margin: auto; background: var(--surface); color: var(--ink); border-radius: 18px; padding: 14px; width: min(100%, 360px); display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.35); }
+.mbox h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 22px; }
+.mbox label { font-size: 13px; font-weight: 700; display: flex; flex-direction: column; gap: 4px; }
+.mbox input[type="password"], .mbox input[type="text"] { font: inherit; font-size: 16px; padding: 8px 10px; border: 2px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+.mbox .msg { min-height: 1.2em; font-size: 13px; font-weight: 700; color: #d6402f; }
+.mbox .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.mbox .acts button, .step button { font: inherit; font-weight: 700; font-size: 15px; min-height: 44px; padding: 6px 14px; border-radius: 12px; border: 2px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.mbox .acts .go { flex: 1; background: var(--ok); border-color: var(--ok); color: var(--ok-ink); }
+.step { display: grid; grid-template-columns: 52px 1fr 52px; gap: 8px; align-items: center; }
+.step .val { text-align: center; font-family: var(--font-display); font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.step .val.plus { color: var(--ok); }
+.step .val.minus { color: #d6402f; }
+.mbox input[type="range"] { width: 100%; }
+.mbox .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: -6px; }
+.foot { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
+.foot button { font: inherit; color: var(--ink); background: transparent; border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; min-height: 32px; }
+.foot button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.foot .danger { border-color: var(--ink); }
+.foot .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* 폰 화면: 네 글자 이름이 한 줄에 들어가도록 칸을 조금 줄여요 */
+@media (max-width: 639px) {
+  .task { grid-template-columns: 22px 1fr auto; gap: 5px; padding: 5px 6px; }
+  .box { width: 22px; height: 22px; border-width: 2px; border-radius: 7px; }
+  .box svg { width: 14px; height: 14px; }
+  .name { font-size: 13px; word-break: keep-all; overflow-wrap: normal; }
+  .name .num { min-width: 0; margin-right: 3px; }
+  .pay { font-size: 12px; }
+}
+@media (max-width: 420px) {
+  .task { gap: 4px; padding: 5px 5px; }
+  .name { font-size: 12.5px; }
+  .name .num { margin-right: 2px; }
+}
+@media (max-width: 420px) {
+  .chead { flex-wrap: nowrap; padding: 8px 8px; gap: 4px; }
+  .cname { font-size: 20px; }
+  .ctotal { font-size: 18px; }
+  .cright { gap: 4px; }
+  .settle { font-size: 13px; padding: 2px 8px; min-height: 32px; }
+}
+@media (max-width: 380px) {
+  .name { font-size: 11.5px; }
+  .pay { font-size: 11px; }
+  .task { grid-template-columns: 20px 1fr auto; }
+  .box { width: 20px; height: 20px; }
+}
+@media (min-width: 640px) {
+  body { font-size: 16px; padding-block: 20px 32px; }
+  h1 { font-size: 30px; }
+  .date { font-size: 14px; }
+  .cols { gap: 16px; }
+  .chead { padding: 12px 16px; }
+  .cname { font-size: 28px; }
+  .ctotal { font-size: 28px; }
+  .settle { font-size: 18px; padding: 4px 16px; min-height: 42px; }
+  .srow { font-size: 14px; }
+  .cmeta { font-size: 14px; }
+  .tw { font-size: 16px; padding: 3px 16px; }
+  .tw .today { font-size: 30px; }
+  .cbar { height: 8px; }
+  .wdate { font-size: 18px; margin-right: 4px; }
+  .wd { width: 60px; height: 32px; border-radius: 16px; font-size: 14px; }
+  .wb { font-size: 15px; }
+  .task { min-height: 56px; grid-template-columns: 32px 1fr auto; padding: 8px 12px; gap: 12px; }
+  .box { width: 32px; height: 32px; }
+  .box svg { width: 20px; height: 20px; }
+  .name { font-size: 17px; }
+  .name small { font-size: 13px; }
+  .pay { font-size: 18px; }
+  .nbox { font-size: 14px; padding: 1px 10px; }
+  .float { font-size: 16px; }
+  .foot { font-size: 14px; }
+  .confirm { font-size: 16px; min-height: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bump, .float { animation: none; }
+  .float { display: none; }
+  .cbar > i { transition: none; }
+}
+</style>
+
+<main class="wrap">
+  <header class="top">
+    <h1>어니 혀니 매일 미션</h1>
+    <button type="button" class="offbtn" id="offbtn">쉬는<br>날</button>
+  </header>
+
+
+  <div class="week" id="week" role="group" aria-label="이번 주 월요일부터 금요일"></div>
+
+  <div class="cols" id="cols"></div>
+
+  <div class="foot">
+    <span id="savemsg">이 기기에 저장돼요.</span>
+    <button type="button" id="editbtn">미션 편집</button>
+    <button type="button" id="paybtn">보너스 설정</button>
+    <button type="button" id="syncbtn">시트 연동</button>
+    <button type="button" id="pwbtn">비밀번호 설정</button>
+  </div>
+  <div class="modal" id="modal" hidden></div>
+</main>
+
+<script>
+(function () {
+  var PAY = 1; // 항목 하나의 기본 점수
+  var WON = 10; // 1p = 10원
+  var SETTLE_STEP = 100; // 정산은 100p 단위로, 최소 100p부터
+  var ADJ_MAX = 20, ADJ_STEP = 2; // 부모님이 하루에 더하거나 뺄 수 있는 점수(−20p ~ +20p, 2p 단위)
+  var BONUS = 1; // 하루에 모든 항목을 체크하면 받는 보너스
+  // 저녁 1~3번(문제·영어·독서)으로 번 돈이 1200p이 될 때마다 300p을 더 줘요. (4일 성공하면 1일 더 성공으로 쳐주는 셈)
+  var STUDY_IDS = ["pq", "pe", "pr"];
+  var STUDY_STEP = 120;
+  var STUDY_BONUS = 30;
+  var ALL_BONUS = 5; // 아침·저녁 미션을 모두 체크하면 받는 보너스
+  var WEEK_BONUS = 10; // 월~금을 모두 성공한 주에 받는 보너스
+  // 쉬는 날은 시간 제한 없이 하루 종일 체크할 수 있어요. 토·일은 자동으로 쉬는 날이고,
+  // 공휴일·방학·재량휴업일은 'YYYY-MM-DD' 형식으로 아래에 적어요. (평일 쉬는 날은 주간 보너스 조건에서 빠져요)
+  var HOLIDAYS = ["2026-12-25", "2027-01-01"];
+  var ITEMS = [
+    // from~until: 이 항목을 체크할 수 있는 시간 (한국 시간, 24시간제). 항목마다 따로 바꿀 수 있어요.
+    { id: "wake", text: "일어나기", note: "7시 20분까지", from: "07:00", until: "07:20" },
+    { id: "meal", text: "아침 먹기", note: "7시 40분까지", from: "07:20", until: "07:40" },
+    { id: "brush", text: "양치 세수", from: "07:20", until: "07:55" },
+    { id: "lotion", text: "로션", from: "07:25", until: "07:55" },
+    { id: "hair", text: "머리 빗기", from: "07:25", until: "07:55" },
+    { id: "bottle", text: "가방 확인", from: "07:30", until: "07:55" },
+    { id: "watch", text: "워치 차기", from: "07:30", until: "07:55" },
+    { id: "coat", text: "외투 입기", from: "07:40", until: "07:55" },
+    { id: "greet", text: "인사 하기", note: "7시 55분까지", from: "07:40", until: "07:55" }
+  ];
+  // 저녁 미션 (한국 시간). 시간은 항목마다 따로 바꿀 수 있어요.
+  // grace: 화면에 보이는 마감 시간이 지나도 이 분(分)만큼은 더 체크할 수 있어요.
+  var ITEMS_PM = [
+    { id: "pq", text: "문제 풀기", pay: 10, from: "18:00", until: "21:00", grace: 10 },
+    { id: "pe", text: "영어 공부", pay: 10, from: "18:00", until: "21:00", grace: 10 },
+    { id: "pr", text: "독서 하기", pay: 10, from: "18:00", until: "21:00", grace: 10, note: "9시까지" },
+    { id: "pt", text: "양치 하기", pay: 1, from: "18:00", until: "21:30", grace: 10 },
+    // 세수·샤워는 둘 중 하나만 고를 수 있어요. 어제 세수만 했다면 오늘은 샤워만, 어제 샤워했다면 오늘은 둘 중 선택!
+    { id: "pw", text: "세수 하기", pay: 1, from: "18:00", until: "21:30", grace: 10, pair: true, note: "둘 중 하나" },
+    { id: "ps", text: "샤워 하기", pay: 3, from: "18:00", until: "21:30", grace: 10, pair: true, note: "9시 30분까지" },
+    { id: "pj", text: "♥ 개인 공부", optional: true, pay: 0, payText: "?", from: "18:00", until: "22:00" },
+    { id: "pb", text: "자러 가기", pay: 1, from: "18:00", until: "22:00", note: "10시까지" }
+  ];
+  var ALL = ITEMS.concat(ITEMS_PM);
+  // 부모님이 '미션 편집'에서 바꾸기 전의 처음 항목들
+  var DEF_AM = JSON.parse(JSON.stringify(ITEMS)), DEF_PM = JSON.parse(JSON.stringify(ITEMS_PM));
+  DEF_AM.forEach(function (it) { if (it.pay === undefined) it.pay = PAY; delete it.note; });
+  DEF_PM.forEach(function (it) { if (STUDY_IDS.indexOf(it.id) > -1) it.study = true; if (it.pay === undefined) it.pay = PAY; delete it.note; });
+  var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS };
+  var KIDS = [{ id: "eoni", name: "어니" }, { id: "hyeoni", name: "혀니" }];
+  var KEY = "morning-checklist-v2";
+
+  // 전체 열리는 시각과 닫히는 시각은 항목별 시간에서 자동으로 정해져요.
+  function toMin(s) { var p = s.split(":"); return +p[0] * 60 + +p[1]; }
+  function toObj(mins) { return { h: Math.floor(mins / 60), m: mins % 60 }; }
+  var OPEN_AT = toObj(Math.min.apply(null, ITEMS.map(function (i) { return toMin(i.from); })));
+  var CLOSE_AT = toObj(Math.max.apply(null, ITEMS.map(function (i) { return toMin(i.until); })));
+
+  var PM_OPEN = toObj(Math.min.apply(null, ITEMS_PM.map(function (i) { return toMin(i.from); })));
+  var PM_CLOSE = toObj(Math.max.apply(null, ITEMS_PM.map(function (i) { return toMin(i.until) + (i.grace || 0); })));
+
+  function timeText(t) { var p = t.split(":"), h = +p[0], m = +p[1]; return (h > 12 ? h - 12 : h) + "시" + (m ? " " + m + "분" : "") + "까지"; }
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function label(t) { return pad(t.h) + ":" + pad(t.m); }
+  function nowMinutes() {
+    var d = new Date(Date.now() + 9 * 3600 * 1000);
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+  }
+  // 날짜 계산 (한국 날짜 'YYYY-MM-DD' 기준)
+  function dayMs(k) { var p = k.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function keyOf(ms) { return new Date(ms).toISOString().slice(0, 10); }
+  function dateText(k) { return (+k.slice(5, 7)) + "." + (+k.slice(8, 10)) + "."; } // 예: 10.29.
+  function dow(k) { return new Date(dayMs(k)).getUTCDay(); } // 0=일, 6=토
+  function isRest(k) { var w = dow(k); return w === 0 || w === 6 || HOLIDAYS.indexOf(k) > -1; }
+  function mondayOf(k) { return keyOf(dayMs(k) - ((dow(k) + 6) % 7) * 86400000); }
+  function weekdaysOf(mon) {
+    var a = [];
+    for (var i = 0; i < 5; i++) a.push(keyOf(dayMs(mon) + i * 86400000));
+    return a;
+  }
+
+  function openState(pm) {
+    if (isRest(todayKey())) return "open";
+    var n = nowMinutes();
+    var o = pm ? PM_OPEN : OPEN_AT, c = pm ? PM_CLOSE : CLOSE_AT;
+    if (n < o.h * 60 + o.m) return "before";
+    if (n > c.h * 60 + c.m) return "after"; // "55분까지"는 55분이 끝날 때까지
+    return "open";
+  }
+  function pairInfo(kid, id) {
+    // 세수(pw)·샤워(ps) 선택 규칙. 이미 체크한 항목은 막지 않아요.
+    if (id !== "pw" && id !== "ps") return "";
+    var ds = state.kids[kid].days, t = todayKey();
+    var today = ds[t] || [];
+    if (today.indexOf(id) > -1) return "";
+    var other = id === "pw" ? "ps" : "pw";
+    if (today.indexOf(other) > -1) return "other";
+    if (id === "pw") {
+      var y = ds[keyOf(dayMs(t) - 86400000)] || [];
+      if (y.indexOf("pw") > -1 && y.indexOf("ps") === -1) return "yday";
+    }
+    return "";
+  }
+  function canCheck(id, kid) {
+    if (kid && pairInfo(kid, id)) return false;
+    if (isRest(todayKey())) return true;
+    for (var i = 0; i < ALL.length; i++) {
+      var it = ALL[i];
+      if (it.id === id) {
+        var n = nowMinutes();
+        return n >= toMin(it.from) && n <= toMin(it.until) + (it.grace || 0);
+      }
+    }
+    return false;
+  }
+
+  function todayKey() {
+    try { return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }); }
+    catch (e) { return new Date().toISOString().slice(0, 10); }
+  }
+  function load() {
+    var p = null;
+    try { var raw = localStorage.getItem(KEY); if (raw) p = JSON.parse(raw); } catch (e) {}
+    return normalize(p);
+  }
+  var justMigrated = false;
+  // 예전에는 1p = 1원이었어요. 1p = 10원으로 바뀌면서 저장된 점수를 10분의 1로 줄여요.
+  function migrate(s) {
+    var d10 = function (n) { return Math.round((+n || 0) / 10); };
+    KIDS.forEach(function (k) {
+      var kd = s.kids[k.id];
+      if (!kd) return;
+      if (kd.carry) kd.carry = d10(kd.carry);
+      if (kd.studyCarry) kd.studyCarry = d10(kd.studyCarry);
+      if (kd.adj) Object.keys(kd.adj).forEach(function (d) { kd.adj[d] = d10(kd.adj[d]); });
+    });
+    var c = s.cfg || {};
+    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "STUDY_STEP", "STUDY_BONUS"].forEach(function (k) { if (typeof c[k] === "number") c[k] = d10(c[k]); });
+    if (c.pay) Object.keys(c.pay).forEach(function (k) { if (typeof c.pay[k] === "number") c.pay[k] = d10(c.pay[k]); });
+    if (c.items) ["am", "pm"].forEach(function (g) { (c.items[g] || []).forEach(function (it) { if (typeof it.pay === "number") it.pay = d10(it.pay); }); });
+  }
+  function normalize(p) {
+    var s = { kids: {} };
+    s.cfg = (p && p.cfg) || {};
+    if (p && p.kids) { s.kids = p.kids; s.confirmed = p.confirmed || {}; s.pw = p.pw || ""; s.ts = p.ts || 0; }
+    KIDS.forEach(function (k) { if (!s.kids[k.id] || !s.kids[k.id].days) s.kids[k.id] = { days: {} }; if (!s.kids[k.id].adj) s.kids[k.id].adj = {}; if (!s.kids[k.id].conf) s.kids[k.id].conf = {}; if (!s.kids[k.id].off) s.kids[k.id].off = {}; });
+    if (p && p.kids && !(p.ver >= 2)) { migrate(s); justMigrated = true; }
+    s.ver = 2;
+    return s;
+  }
+  function save(quiet) {
+    if (!quiet) state.ts = Math.max(Date.now(), (state.ts || 0) + 1);
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    if (!quiet) schedulePush();
+  }
+
+  var state = load();
+  if (justMigrated) { justMigrated = false; save(); }
+  var day = todayKey();
+  var valid = ALL.map(function (i) { return i.id; });
+  var amIds = ITEMS.map(function (i) { return i.id; });
+  function onlyValid(arr) { return (arr || []).filter(function (id) { return valid.indexOf(id) > -1; }); }
+  function amOnly(arr) { return onlyValid(arr).filter(function (id) { return amIds.indexOf(id) > -1; }); }
+  function payOf(id) { for (var i = 0; i < ALL.length; i++) if (ALL[i].id === id) return ALL[i].pay === undefined ? PAY : ALL[i].pay; return 0; }
+  function pmFull(arr) {
+    var v = onlyValid(arr);
+    return ITEMS_PM.every(function (it) { return it.pair || it.optional || v.indexOf(it.id) > -1; }) && (v.indexOf("pw") > -1 || v.indexOf("ps") > -1);
+  }
+  function pmCount(arr) {
+    var v = onlyValid(arr), n = 0;
+    ITEMS_PM.forEach(function (it) { if (!it.pair && !it.optional && v.indexOf(it.id) > -1) n++; });
+    return n + (v.indexOf("pw") > -1 || v.indexOf("ps") > -1 ? 1 : 0);
+  }
+  var PM_TOTAL = ITEMS_PM.filter(function (it) { return !it.pair && !it.optional; }).length + 1;
+  applyCfg();
+  function dayCoins(arr) {
+    var v = onlyValid(arr), n = 0;
+    v.forEach(function (id) { n += payOf(id); });
+    var am = amOnly(arr).length === ITEMS.length;
+    if (am) n += BONUS;
+    if (am && pmFull(arr)) n += ALL_BONUS;
+    return n;
+  }
+  function studyDay(arr) {
+    var n = 0;
+    onlyValid(arr).forEach(function (id) { if (STUDY_IDS.indexOf(id) > -1) n += payOf(id); });
+    return n;
+  }
+  function studyOf(kid) {
+    var kd = state.kids[kid], n = kd.studyCarry || 0;
+    Object.keys(kd.days).forEach(function (d) { n += studyDay(kd.days[d]); });
+    return n;
+  }
+  // 그 주에 공부 미션(1~3번)을 모두 한 날 수, 그 주에 새로 받은 공부 보너스
+  function studyWeek(kid, mon) {
+    var kd = state.kids[kid], before = kd.studyCarry || 0, week = 0, full = 0;
+    Object.keys(kd.days).forEach(function (d) {
+      var v = studyDay(kd.days[d]);
+      if (d < mon) before += v;
+      else if (mondayOf(d) === mon) {
+        week += v;
+        var ids = onlyValid(kd.days[d]);
+        if (weekdaysOf(mon).indexOf(d) > -1 && STUDY_IDS.length && STUDY_IDS.every(function (id) { return ids.indexOf(id) > -1; })) full++;
+      }
+    });
+    return { days: full, gained: (Math.floor((before + week) / STUDY_STEP) - Math.floor(before / STUDY_STEP)) * STUDY_BONUS };
+  }
+  function studyBonus(kid) { return Math.floor(studyOf(kid) / STUDY_STEP) * STUDY_BONUS; }
+  function daysOf(kid) { return state.kids[kid].days; }
+  // 부모님 확인은 어니·혀니 함께 하루에 한 번만 받아요.
+  function confOf() {
+    if (!state.confirmed) state.confirmed = {};
+    return state.confirmed;
+  }
+  // 그날 부모님이 '쉬는 날'로 정한 날 (체험학습·개인 사정 등)
+  function isOff(kid, k) { return !!state.kids[kid].off[k]; }
+  function fullDay(kid, k) { return amOnly(daysOf(kid)[k]).length === ITEMS.length; }
+  // 그 주 월~금(쉬는 평일 제외)을 모두 성공했는지
+  function weekDone(kid, mon) {
+    var req = weekdaysOf(mon).filter(function (k) { return HOLIDAYS.indexOf(k) === -1 && !isOff(kid, k); });
+    return req.length > 0 && req.every(function (k) { return fullDay(kid, k); });
+  }
+  function totalCoins(kid) {
+    var n = state.kids[kid].carry || 0;
+    var adj = state.kids[kid].adj;
+    n += studyBonus(kid);
+    Object.keys(adj).forEach(function (d) { n += adj[d] || 0; });
+    var ds = daysOf(kid);
+    var weeks = {};
+    Object.keys(ds).forEach(function (d) {
+      n += dayCoins(ds[d]);
+      var mon = mondayOf(d);
+      if (!weeks[mon]) { weeks[mon] = true; if (weekDone(kid, mon)) n += WEEK_BONUS; }
+    });
+    return n;
+  }
+
+  // 지난주(와 그 전) 기록은 합계 금액으로만 합쳐 두고 요일별 기록은 비워요. (이번 주 기록만 요일별로 보여줘요)
+  function rollover() {
+    var cur = mondayOf(todayKey());
+    var limit = keyOf(dayMs(cur) - 7 * 86400000); // 어제 기록(세수·샤워 규칙)이 필요해서 지난주는 한 주 더 남겨 둬요
+    var changed = false;
+    KIDS.forEach(function (k) {
+      var kd = state.kids[k.id], ds = kd.days, weeks = {};
+      Object.keys(ds).forEach(function (d) { var m = mondayOf(d); if (m < limit) weeks[m] = true; });
+      Object.keys(weeks).forEach(function (m) {
+        var sum = weekDone(k.id, m) ? WEEK_BONUS : 0;
+        Object.keys(ds).forEach(function (d) { if (mondayOf(d) === m) { sum += dayCoins(ds[d]); kd.studyCarry = (kd.studyCarry || 0) + studyDay(ds[d]); delete ds[d]; } });
+        kd.carry = (kd.carry || 0) + sum;
+        changed = true;
+      });
+    });
+    KIDS.forEach(function (k) {
+      var kd = state.kids[k.id];
+      Object.keys(kd.adj).concat(Object.keys(kd.conf), Object.keys(kd.off)).forEach(function (d) {
+        if (mondayOf(d) < limit) {
+          if (kd.adj[d]) { kd.carry = (kd.carry || 0) + kd.adj[d]; }
+          delete kd.adj[d]; delete kd.conf[d]; delete kd.off[d]; changed = true;
+        }
+      });
+    });
+    if (changed) save(true);
+  }
+
+  function signed(v) { return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v) + "p"; }
+
+  function renderDetail(c, kid, key, today) {
+    var box = c.detail;
+    if (!key) { box.hidden = true; return; }
+    var arr = onlyValid(daysOf(kid)[key]);
+    box.hidden = false;
+    box.textContent = "";
+    var h = document.createElement("div");
+    h.className = "dh";
+    var a = document.createElement("span");
+    a.textContent = dateText(key) + " " + WD_NAMES[weekdaysOf(mondayOf(key)).indexOf(key)];
+    var b = document.createElement("span");
+    var aj = state.kids[kid].adj[key] || 0;
+    b.textContent = isOff(kid, key) ? (state.kids[kid].off[key] === "공휴일" ? "공휴일" : "쉬는 날") + (aj ? " (부모님 " + signed(aj) + ")" : "") : key > today ? "아직이에요" : (dayCoins(arr) + aj).toLocaleString("ko-KR") + "p" + (aj ? " (부모님 " + signed(aj) + ")" : "");
+    h.appendChild(a); h.appendChild(b);
+    box.appendChild(h);
+    if (key <= today && !isOff(kid, key)) {
+      var bg = el("div", "dbg");
+      var amFull = amOnly(arr).length === ITEMS.length, pmDone = pmFull(arr);
+      if (amFull) bg.appendChild(el("span", "db", "아침 올 클리어 +" + BONUS + "p"));
+      if (amFull && pmDone) bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p"));
+      if (dow(key) === 5) {
+        var sw = studyWeek(kid, mondayOf(key));
+        if (sw.days >= 4) bg.appendChild(el("span", "db", "공부 미션 " + sw.days + "일 클리어 +" + sw.gained + "p"));
+      }
+      if (bg.childNodes.length) box.appendChild(bg);
+    }
+    function group(title, list) {
+      var g = document.createElement("div");
+      g.className = "dg";
+      var cnt = 0;
+      var l = document.createElement("div");
+      l.className = "dl";
+      var pairDone = false;
+      list.forEach(function (it) {
+        if (it.pair) {
+          if (pairDone) return;
+          pairDone = true;
+          var got = arr.indexOf("pw") > -1 ? "세수" : arr.indexOf("ps") > -1 ? "샤워" : "";
+          var e = document.createElement("span");
+          e.className = "dc" + (got ? " ok" : "");
+          e.textContent = got ? (got + " 하기") : "세수·샤워";
+          if (got) cnt++;
+          l.appendChild(e);
+          return;
+        }
+        var ok = arr.indexOf(it.id) > -1;
+        if (ok && !it.optional) cnt++;
+        var e2 = document.createElement("span");
+        e2.className = "dc" + (ok ? " ok" : "");
+        e2.textContent = it.text;
+        l.appendChild(e2);
+      });
+      var total = list.filter(function (x) { return !x.pair && !x.optional; }).length + (list.some(function (x) { return x.pair; }) ? 1 : 0);
+      g.textContent = title + " " + cnt + " / " + total;
+      box.appendChild(g);
+      box.appendChild(l);
+    }
+    group("아침 미션", ITEMS);
+    group("저녁 미션", ITEMS_PM);
+    var info = el("div", "dinfo");
+    function line(name, val, desc) {
+      var r = el("div", "dir");
+      r.appendChild(el("b", "", name + " "));
+      r.appendChild(el("span", "dv", val));
+      r.appendChild(document.createTextNode(" " + desc));
+      info.appendChild(r);
+    }
+    line("아침 올 클리어", "+" + BONUS + "p", "· 아침 미션을 모두 하면");
+    line("하루 올 클리어", "+" + ALL_BONUS + "p", "· 아침·저녁 미션을 모두 하면");
+    var studyNames = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
+    if (studyNames.length) line("공부 보너스", "+" + STUDY_BONUS + "p", "· " + studyNames.join("·") + " 점수가 " + STUDY_STEP.toLocaleString("ko-KR") + "p 쌓일 때마다");
+    line("주간 보너스", "+" + WEEK_BONUS + "p", "· 월~금 아침 미션을 모두 하면");
+    line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요");
+    box.appendChild(info);
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  var cards = {};
+  var WD_NAMES = ["월", "화", "수", "목", "금"];
+  var sel = { key: "" }; // 아이별로 지금 보고 있는 요일(저장하지 않아요)
+
+  KIDS.forEach(function (k) {
+    var sec = document.createElement("section");
+    sec.className = "card";
+    sec.setAttribute("aria-label", k.name + " 체크리스트");
+    sec.innerHTML =
+      '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p</span><button type="button" class="settle">정산</button></span></div>' +
+      '<div class="cmeta"><span class="tw">오늘 <b class="today">0</b>p</span><span class="st"></span></div>' +
+      '<div class="cbar"><i></i></div></div>' +
+      '<div class="wdetail" hidden></div><div class="offmsg">오늘은 쉬는 날이에요</div><div class="pmhead amhead"></div><ul class="am"></ul><div class="pmhead"></div><ul class="pm"></ul><button type="button" class="confirm" aria-pressed="false">부모님 확인 받기</button>';
+    sec.querySelector(".cname").textContent = k.name;
+    sec.querySelector(".settle").addEventListener("click", function () { settleDialog(k); });
+    var ul = sec.querySelector("ul.am");
+    function addItems(ul, list) {
+      var no = 0;
+      function mkBtn(it, withNum, numText) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "task";
+        b.dataset.id = it.id;
+        b.setAttribute("aria-pressed", "false");
+        b.innerHTML = '<span class="box">' + check + '</span><span class="name"></span><span class="pay">+' + (it.pay === 0 && it.payText ? it.payText : (it.pay === undefined ? PAY : it.pay)) + 'p</span>';
+        var nm = b.querySelector(".name");
+        if (withNum) {
+          var num = document.createElement("span");
+          num.className = "num";
+          num.textContent = numText || (no + ".");
+          nm.appendChild(num);
+        }
+        nm.appendChild(document.createTextNode(it.text));
+        b.addEventListener("click", function () { toggle(k.id, it.id, b); });
+        return b;
+      }
+      function mkNote(li, text, pairId) {
+        // 이름 아래에 얇은 칸을 따로 붙여서 안내 문구를 보여줘요.
+        var nb = document.createElement("div");
+        nb.className = "nbox";
+        nb.dataset.win = text;
+        if (pairId) nb.dataset.pair = pairId;
+        nb.textContent = text;
+        li.appendChild(nb);
+      }
+      var grp = null, lastUntil = "";
+      list.forEach(function (it) {
+        if (it.pair && it.id === "ps") return; // 샤워는 세수와 한 칸에 들어가요
+        if (!grp || it.until !== lastUntil) {
+          // 마감 시간이 같은 미션끼리 풍선 하나로 묶어요.
+          var gli = document.createElement("li");
+          gli.className = "grp";
+          gli.dataset.from = it.from;
+          gli.dataset.until = it.until;
+          var gl = document.createElement("div");
+          gl.className = "gl";
+          gl.dataset.win = timeText(it.until);
+          gl.textContent = gl.dataset.win;
+          gli.appendChild(gl);
+          grp = document.createElement("ul");
+          grp.className = "gi";
+          gli.appendChild(grp);
+          ul.appendChild(gli);
+          lastUntil = it.until;
+        }
+        var li = document.createElement("li");
+        if (!it.optional) no++;
+        if (it.pair) {
+          // 세수·샤워를 한 칸으로: 둘 중 하나만 고를 수 있어요.
+          var other = list.filter(function (x) { return x.pair && x.id !== it.id; })[0];
+          var opts = document.createElement("div");
+          opts.className = "popts";
+          // 샤워(5-1) → 세수(5-2) 순서로 보여줘요.
+          [other, it].forEach(function (x, j) {
+            opts.appendChild(mkBtn({ id: x.id, text: x.text, pay: x.pay, payText: x.payText }, true, no + "-" + (j + 1) + "."));
+          });
+          li.appendChild(opts);
+          var hint = document.createElement("div");
+          hint.className = "nbox";
+          hint.dataset.pair = it.id;
+          hint.hidden = true;
+          li.appendChild(hint);
+        } else {
+          li.appendChild(mkBtn(it, !it.optional));
+        }
+        grp.appendChild(li);
+      });
+    }
+    var pmUl = sec.querySelector("ul.pm");
+    function build() { ul.textContent = ""; pmUl.textContent = ""; addItems(ul, ITEMS); addItems(pmUl, ITEMS_PM); }
+    build();
+
+    $("cols").appendChild(sec);
+    cards[k.id] = {
+      root: sec,
+      tv: sec.querySelector(".tv"),
+      today: sec.querySelector(".today"),
+      st: sec.querySelector(".st"),
+      fill: sec.querySelector(".cbar > i"),
+      detail: sec.querySelector(".wdetail"),
+      list: ul,
+      pmhead: sec.querySelector(".pmhead:not(.amhead)"),
+      amhead: sec.querySelector(".amhead"),
+      confirm: sec.querySelector(".confirm"),
+      rebuild: build
+    };
+  });
+
+  // 날짜·요일 줄은 어니·혀니가 함께 써요. 요일 칸의 왼쪽 반은 어니, 오른쪽 반은 혀니예요.
+  var weekEl = $("week"), dateEl = document.createElement("span"), wbEl = document.createElement("span");
+  dateEl.className = "wdate";
+  weekEl.appendChild(dateEl);
+  var wdEls = WD_NAMES.map(function (nm, i) {
+    var d = document.createElement("button");
+    d.type = "button";
+    d.className = "wd";
+    d.textContent = nm;
+    d.setAttribute("aria-label", nm + "요일 결과 보기");
+    d.addEventListener("click", function () {
+      var key = weekdaysOf(mondayOf(todayKey()))[i];
+      sel.key = sel.key === key ? "" : key;
+      render();
+    });
+    weekEl.appendChild(d);
+    return d;
+  });
+  wbEl.className = "wb";
+  weekEl.appendChild(wbEl);
+
+  function toggle(kid, id, btn) {
+    if (!canCheck(id, kid)) { render(); return; }
+    day = todayKey();
+    var wasWeek = weekDone(kid, mondayOf(day));
+    var before = totalCoins(kid);
+    var arr = onlyValid(daysOf(kid)[day]).slice();
+    var i = arr.indexOf(id);
+    var adding = i === -1;
+    if (adding) arr.push(id); else arr.splice(i, 1);
+    daysOf(kid)[day] = arr;
+    save();
+    render();
+    if (adding) pop(btn, cards[kid].tv, totalCoins(kid) - before, payOf(id));
+  }
+
+  function pop(btn, tv, amount, base) {
+    var f = document.createElement("span");
+    f.className = "float";
+    f.textContent = "+" + (amount === 0 ? "?" : amount) + "p" + (amount > base ? "!" : "");
+    btn.appendChild(f);
+    setTimeout(function () { f.remove(); }, 850);
+    tv.classList.remove("bump");
+    void tv.offsetWidth;
+    tv.classList.add("bump");
+  }
+
+  function render() {
+    day = todayKey();
+    rollover();
+    try { document.documentElement.style.setProperty("--hh", document.querySelector(".top").offsetHeight + "px"); } catch (e) {}
+    var rest = isRest(day);
+    KIDS.forEach(function (k) {
+      var c = cards[k.id];
+      var done = onlyValid(daysOf(k.id)[day]);
+      c.root.classList.toggle("off", isOff(k.id, day));
+      var ov = state.kids[k.id].off[day];
+      c.root.querySelector(".offmsg").textContent = ov === "공휴일" ? "오늘은 공휴일이에요" : (typeof ov === "string" && ov.length > 3 ? "오늘은 쉬는 날이에요 (" + ov.slice(3) + ")" : "오늘은 쉬는 날이에요");
+      var n = amOnly(done).length;
+      var nPm = pmCount(done);
+      Array.prototype.forEach.call(c.root.querySelectorAll(".task"), function (b) {
+        b.setAttribute("aria-pressed", done.indexOf(b.dataset.id) > -1 ? "true" : "false");
+        b.setAttribute("aria-disabled", canCheck(b.dataset.id, k.id) ? "false" : "true");
+      });
+      Array.prototype.forEach.call(c.root.querySelectorAll(".nbox"), function (nb) {
+        var pi = pairInfo(k.id, "pw");
+        nb.hidden = pi !== "yday";
+        nb.textContent = "어제 세수했어요 · 오늘은 샤워만";
+      });
+      Array.prototype.forEach.call(c.root.querySelectorAll(".grp .gl"), function (gl) {
+        gl.textContent = rest ? "쉬는 날 · 하루 종일" : gl.dataset.win;
+      });
+      var mon = mondayOf(day);
+      var as = openState(false);
+      var amsg = n + " / " + ITEMS.length;
+      c.amhead.textContent = "";
+      var ab = document.createElement("b");
+      ab.textContent = "아침 미션";
+      c.amhead.appendChild(ab);
+      c.amhead.appendChild(document.createTextNode(" · " + amsg));
+      var ps = openState(true);
+      var pmsg = nPm + " / " + PM_TOTAL;
+      c.pmhead.textContent = "";
+      var pb = document.createElement("b");
+      pb.textContent = "저녁 미션";
+      c.pmhead.appendChild(pb);
+      c.pmhead.appendChild(document.createTextNode(" · " + pmsg));
+      renderDetail(c, k.id, sel.key && weekdaysOf(mon).indexOf(sel.key) > -1 ? sel.key : "", day);
+      c.tv.textContent = totalCoins(k.id).toLocaleString("ko-KR");
+      var all = n === ITEMS.length;
+      c.today.textContent = (dayCoins(done) + (state.kids[k.id].adj[day] || 0)).toLocaleString("ko-KR");
+      c.fill.style.width = Math.round(n / ITEMS.length * 100) + "%";
+      c.root.classList.toggle("all", all);
+      c.st.textContent = all ? "보너스 +" + BONUS + "p!" : n + " / " + ITEMS.length;
+    });
+    var monD = mondayOf(day), wdsD = weekdaysOf(monD);
+    dateEl.textContent = dateText(day);
+    wdEls.forEach(function (el, i) {
+      var f0 = fullDay(KIDS[0].id, wdsD[i]), f1 = fullDay(KIDS[1].id, wdsD[i]);
+      el.style.setProperty("--wl", f0 ? "var(--ok)" : "transparent");
+      el.style.setProperty("--wr", f1 ? "var(--ok)" : "transparent");
+      el.classList.toggle("full", f0 && f1);
+      el.classList.toggle("rest", HOLIDAYS.indexOf(wdsD[i]) > -1 || KIDS.every(function (k) { return isOff(k.id, wdsD[i]); }));
+      el.classList.toggle("now", wdsD[i] === day);
+      el.classList.toggle("sel", wdsD[i] === sel.key);
+    });
+    var wbNames = KIDS.filter(function (k) { return weekDone(k.id, monD); }).map(function (k) { return k.name; });
+    wbEl.textContent = wbNames.length ? "주간 보너스 " + wbNames.join("·") + " +" + WEEK_BONUS + "p!" : "";
+    wbEl.hidden = !wbNames.length;
+    try { document.documentElement.style.setProperty("--wh", weekEl.offsetHeight + "px"); } catch (e) {}
+    var offNames = KIDS.filter(function (k) { return isOff(k.id, day); }).map(function (k) { return k.name; });
+    $("offbtn").title = offNames.length ? "오늘 쉬는 날: " + offNames.join(", ") : "오늘 쉬는 날 설정";
+    $("offbtn").classList.toggle("on", offNames.length > 0);
+    KIDS.forEach(function (k) {
+      var kd = state.kids[k.id], cf = cards[k.id].confirm;
+      var ok = !!kd.conf[day], aj = kd.adj[day] || 0;
+      cf.setAttribute("aria-pressed", ok ? "true" : "false");
+      cf.textContent = ok ? "부모님 확인 완료" + (aj ? " (" + signed(aj) + ")" : "") : "부모님 확인 받기";
+    });
+  }
+
+  // ---- 창(모달)과 비밀번호 ----
+  function hashPw(t) {
+    var a = 5381, b = 52711, str = "mc|" + t;
+    for (var i = 0; i < str.length; i++) { var ch = str.charCodeAt(i); a = ((a * 33) ^ ch) >>> 0; b = ((b * 31) + ch * (i + 7)) >>> 0; }
+    return a.toString(36) + "-" + b.toString(36);
+  }
+  function pwOk(t) { return !state.pw || hashPw(t || "") === state.pw; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function closeModal() { var m = $("modal"); m.hidden = true; m.textContent = ""; }
+  function openModal(title) {
+    var m = $("modal");
+    m.textContent = "";
+    var box = el("div", "mbox");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.appendChild(el("h2", "", title));
+    m.appendChild(box);
+    m.hidden = false;
+    return box;
+  }
+  $("modal").addEventListener("click", function (e) { if (e.target === this) closeModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+  function field(box, label, type) {
+    var l = el("label", "", label), i = el("input");
+    i.type = type || "password";
+    i.autocomplete = "off";
+    l.appendChild(i);
+    box.appendChild(l);
+    return i;
+  }
+  function parentDialog(k) {
+    day = todayKey();
+    var kd = state.kids[k.id], was = !!kd.conf[day];
+    var v = kd.adj[day] || 0;
+    var box = openModal(k.name + " 부모님 확인");
+    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    box.appendChild(el("div", "", "오늘 점수를 골라 주세요 (" + ADJ_STEP + "p = " + ADJ_STEP * WON + "원 단위)"));
+    var step = el("div", "step");
+    var minus = el("button", "", "−" + ADJ_STEP), plus = el("button", "", "+" + ADJ_STEP), val = el("div", "val");
+    minus.type = plus.type = "button";
+    step.appendChild(minus); step.appendChild(val); step.appendChild(plus);
+    box.appendChild(step);
+    var r = el("input");
+    r.type = "range"; r.min = -ADJ_MAX; r.max = ADJ_MAX; r.step = ADJ_STEP; r.value = v;
+    r.setAttribute("aria-label", "추가·차감 금액");
+    box.appendChild(r);
+    var sc = el("div", "scale");
+    ["−" + ADJ_MAX, "0", "+" + ADJ_MAX].forEach(function (t) { sc.appendChild(el("span", "", t)); });
+    box.appendChild(sc);
+    function show() {
+      val.textContent = v === 0 ? "0p" : signed(v);
+      val.className = "val" + (v > 0 ? " plus" : v < 0 ? " minus" : "");
+      r.value = v;
+    }
+    minus.addEventListener("click", function () { v = Math.max(-ADJ_MAX, v - ADJ_STEP); show(); });
+    plus.addEventListener("click", function () { v = Math.min(ADJ_MAX, v + ADJ_STEP); show(); });
+    r.addEventListener("input", function () { v = Math.round(+r.value / ADJ_STEP) * ADJ_STEP; show(); });
+    show();
+    var msg = el("div", "msg");
+    msg.setAttribute("role", "alert");
+    box.appendChild(msg);
+    var acts = el("div", "acts");
+    var go = el("button", "go", was ? "수정하기" : "확인하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      kd.conf[day] = true;
+      if (v) kd.adj[day] = v; else delete kd.adj[day];
+      save(); closeModal(); render();
+    });
+    acts.appendChild(go);
+    if (was) {
+      var undo = el("button", "", "확인 취소");
+      undo.type = "button";
+      undo.addEventListener("click", function () {
+        if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+        delete kd.conf[day]; delete kd.adj[day];
+        save(); closeModal(); render();
+      });
+      acts.appendChild(undo);
+    }
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    acts.appendChild(no);
+    box.appendChild(acts);
+    if (pw) pw.focus();
+  }
+  KIDS.forEach(function (k) {
+    cards[k.id].confirm.addEventListener("click", function () { parentDialog(k); });
+  });
+
+  function offDialog() {
+    day = todayKey();
+    var box = openModal("쉬는 날 설정");
+    box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요."));
+    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var cur = {};
+    KIDS.forEach(function (k) { cur[k.id] = state.kids[k.id].off[day]; });
+    var allHol = KIDS.every(function (k) { return cur[k.id] === "공휴일"; });
+    var isEtc = function (v) { return typeof v === "string" && v.indexOf("기타") === 0; };
+    var allEtc = KIDS.every(function (k) { return isEtc(cur[k.id]); });
+    var etcNote = "";
+    KIDS.forEach(function (k) { if (isEtc(cur[k.id]) && cur[k.id].length > 3) etcNote = cur[k.id].slice(3); });
+    function mk(label, on) {
+      var l = el("label", "chk"), i = el("input");
+      i.type = "checkbox";
+      i.checked = !!on;
+      l.appendChild(i);
+      l.appendChild(document.createTextNode(label));
+      box.appendChild(l);
+      return i;
+    }
+    var kidBox = {};
+    KIDS.forEach(function (k) { kidBox[k.id] = mk(k.name + " 쉬는 날", cur[k.id] && !allHol && !allEtc); });
+    var hol = mk("공휴일", allHol), etc = mk("기타", allEtc);
+    var note = el("input", "etcnote");
+    note.type = "text"; note.maxLength = 20; note.placeholder = "사유 (선택)"; note.value = etcNote;
+    note.setAttribute("aria-label", "기타 사유");
+    etc.parentNode.appendChild(note);
+    function showNote() { note.hidden = !etc.checked; }
+    var prev = null; // 공휴일·기타를 고르기 전의 어니/혀니 선택을 기억해 둬요
+    function sync(changed) {
+      if (changed === hol && hol.checked) etc.checked = false;
+      if (changed === etc && etc.checked) hol.checked = false;
+      var both = hol.checked || etc.checked;
+      if (both && !prev) { prev = {}; KIDS.forEach(function (k) { prev[k.id] = kidBox[k.id].checked; }); }
+      if (!both && prev) { KIDS.forEach(function (k) { kidBox[k.id].checked = prev[k.id]; }); prev = null; }
+      KIDS.forEach(function (k) { if (both) kidBox[k.id].checked = true; kidBox[k.id].disabled = both; });
+    }
+    hol.addEventListener("change", function () { sync(hol); showNote(); });
+    etc.addEventListener("change", function () { sync(etc); showNote(); if (etc.checked) note.focus(); });
+    sync(null); showNote();
+    var msg = el("div", "msg");
+    msg.setAttribute("role", "alert");
+    box.appendChild(msg);
+    var acts = el("div", "acts");
+    var go = el("button", "go", "저장하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      KIDS.forEach(function (k) {
+        var off = state.kids[k.id].off;
+        if (hol.checked) off[day] = "공휴일";
+        else if (etc.checked) off[day] = note.value.trim() ? "기타:" + note.value.trim() : "기타";
+        else if (kidBox[k.id].checked) off[day] = true;
+        else delete off[day];
+      });
+      save(); closeModal(); render();
+    });
+    acts.appendChild(go);
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    acts.appendChild(no);
+    box.appendChild(acts);
+    if (pw) pw.focus();
+  }
+  $("offbtn").addEventListener("click", offDialog);
+
+  // ---- 구글 시트 연동 ----
+  var SYNC_KEY = "morning-sync-url";
+  var syncUrl = "";
+  try { syncUrl = localStorage.getItem(SYNC_KEY) || ""; } catch (e) {}
+  var syncState = syncUrl ? "wait" : "";
+  var pushTimer = null, pushing = false, dirty = false, pulling = false;
+  function setSyncText() {
+    var t = !syncUrl ? "이 기기에 저장돼요." : syncState === "ok" ? "시트와 연동 중" : syncState === "err" ? "연동 오류 (인터넷 확인)" : "시트 연결 중…";
+    $("savemsg").textContent = t;
+    $("syncbtn").textContent = syncUrl ? "연동 설정" : "시트 연동";
+  }
+  function fetchJson(url, opt) {
+    return fetch(url, opt).then(function (r) { return r.json(); });
+  }
+  function adopt(r) {
+    state = normalize(r.state);
+    state.ts = r.ts;
+    if (justMigrated) { justMigrated = false; save(); } else save(true);
+    applyCfg(); rebuildAll();
+    $("pwbtn").textContent = state.pw ? "비밀번호 바꾸기" : "비밀번호 설정";
+    render();
+  }
+  function schedulePush() {
+    if (!syncUrl) return;
+    dirty = true;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(push, 600);
+  }
+  function push() {
+    if (!syncUrl || pushing) { if (pushing) schedulePush(); return; }
+    pushing = true;
+    var sent = state.ts;
+    fetchJson(syncUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ ts: sent, state: state }) })
+      .then(function (r) {
+        pushing = false;
+        if (r && r.conflict && r.state) { dirty = false; adopt(r); }
+        else if (r && r.ok) { if (state.ts === sent) dirty = false; syncState = "ok"; }
+        else throw new Error("bad");
+        setSyncText();
+      })
+      .catch(function () { pushing = false; syncState = "err"; setSyncText(); });
+  }
+  function pull() {
+    if (!syncUrl || pulling || pushing) return;
+    if (dirty) { push(); return; }
+    pulling = true;
+    fetchJson(syncUrl, { cache: "no-store" })
+      .then(function (r) {
+        pulling = false;
+        if (!r || !r.ok) throw new Error("bad");
+        syncState = "ok";
+        if (!r.state) { if (!state.ts) state.ts = Date.now(); save(true); dirty = true; push(); }
+        else if (r.ts > (state.ts || 0)) { if ($("modal").hidden) adopt(r); }
+        else if (r.ts < (state.ts || 0)) { dirty = true; push(); }
+        setSyncText();
+      })
+      .catch(function () { pulling = false; syncState = "err"; setSyncText(); });
+  }
+  function syncDialog() {
+    var box = openModal("구글 시트 연동");
+    box.appendChild(el("div", "", syncUrl ? "시트와 연결돼 있어요. 같은 주소를 넣은 다른 폰과 기록이 함께 보여요." : "시트에 만든 웹 앱 주소를 붙여넣으면 이 폰의 기록이 시트에 저장되고, 같은 주소를 넣은 폰끼리 함께 보여요."));
+    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var u = field(box, "웹 앱 주소 (https://script.google.com/…/exec)", "text");
+    u.value = syncUrl;
+    var msg = el("div", "msg");
+    msg.setAttribute("role", "alert");
+    box.appendChild(msg);
+    var acts = el("div", "acts");
+    var go = el("button", "go", syncUrl ? "다시 연결" : "연결하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      var url = u.value.trim();
+      if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(url)) { msg.textContent = "script.google.com …/exec 로 끝나는 주소를 넣어 주세요"; return; }
+      msg.textContent = "연결 중…";
+      fetchJson(url, { cache: "no-store" }).then(function (r) {
+        if (!r || !r.ok) throw new Error("bad");
+        try { localStorage.setItem(SYNC_KEY, url); } catch (e) {}
+        syncUrl = url;
+        if (r.state) {
+          try { localStorage.setItem(KEY + "-backup", JSON.stringify(state)); } catch (e) {}
+          adopt(r);
+        } else { if (!state.ts) state.ts = Date.now(); save(true); dirty = true; push(); }
+        syncState = "ok"; setSyncText(); closeModal();
+      }).catch(function () { msg.textContent = "연결하지 못했어요. 주소와 '모든 사용자' 배포 설정을 확인해 주세요"; });
+    });
+    acts.appendChild(go);
+    if (syncUrl) {
+      var cut = el("button", "", "연동 끊기");
+      cut.type = "button";
+      cut.addEventListener("click", function () {
+        if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+        try { localStorage.removeItem(SYNC_KEY); } catch (e) {}
+        syncUrl = ""; syncState = ""; dirty = false; setSyncText(); closeModal();
+      });
+      acts.appendChild(cut);
+    }
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    acts.appendChild(no);
+    box.appendChild(acts);
+    u.focus();
+  }
+  $("syncbtn").addEventListener("click", syncDialog);
+  setSyncText();
+  setInterval(pull, 15000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) pull(); });
+  window.addEventListener("online", pull);
+  if (syncUrl) pull();
+
+  function settleDialog(k) {
+    var total = totalCoins(k.id);
+    var box = openModal(k.name + " 정산");
+    box.appendChild(el("div", "", "1p = " + WON + "원으로 바꿔요. " + SETTLE_STEP + "p 단위로 정산할 수 있어요."));
+    var now = el("div", "setnow");
+    now.appendChild(document.createTextNode("지금 포인트 "));
+    now.appendChild(el("b", "", total.toLocaleString("ko-KR") + "p"));
+    box.appendChild(now);
+    var acts = el("div", "acts");
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    if (total < SETTLE_STEP) {
+      box.appendChild(el("div", "msg", SETTLE_STEP + "p부터 정산할 수 있어요."));
+      acts.appendChild(no);
+      box.appendChild(acts);
+      return;
+    }
+    var max = Math.floor(total / SETTLE_STEP) * SETTLE_STEP, v = max;
+    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    box.appendChild(el("div", "", "얼마를 정산할까요?"));
+    var step = el("div", "step");
+    var minus = el("button", "", "−" + SETTLE_STEP), plus = el("button", "", "+" + SETTLE_STEP), val = el("div", "val");
+    minus.type = plus.type = "button";
+    step.appendChild(minus); step.appendChild(val); step.appendChild(plus);
+    box.appendChild(step);
+    var r = el("input");
+    r.type = "range"; r.min = SETTLE_STEP; r.max = max; r.step = SETTLE_STEP; r.value = v;
+    r.setAttribute("aria-label", "정산할 포인트");
+    box.appendChild(r);
+    var sc = el("div", "scale");
+    [SETTLE_STEP + "p", max.toLocaleString("ko-KR") + "p"].forEach(function (t) { sc.appendChild(el("span", "", t)); });
+    box.appendChild(sc);
+    var sum = el("div", "setsum");
+    box.appendChild(sum);
+    function show() {
+      val.textContent = v.toLocaleString("ko-KR") + "p";
+      r.value = v;
+      sum.textContent = "";
+      var l1 = el("div", "");
+      l1.appendChild(document.createTextNode(v.toLocaleString("ko-KR") + "p → "));
+      l1.appendChild(el("b", "", (v * WON).toLocaleString("ko-KR") + "원"));
+      sum.appendChild(l1);
+      sum.appendChild(el("div", "", "정산 후 남는 포인트 " + (total - v).toLocaleString("ko-KR") + "p"));
+    }
+    minus.addEventListener("click", function () { v = Math.max(SETTLE_STEP, v - SETTLE_STEP); show(); });
+    plus.addEventListener("click", function () { v = Math.min(max, v + SETTLE_STEP); show(); });
+    r.addEventListener("input", function () { v = Math.min(max, Math.max(SETTLE_STEP, Math.round(+r.value / SETTLE_STEP) * SETTLE_STEP)); show(); });
+    show();
+    var msg = el("div", "msg");
+    msg.setAttribute("role", "alert");
+    box.appendChild(msg);
+    var go = el("button", "go", "정산하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      if (v > totalCoins(k.id)) { msg.textContent = "포인트가 달라졌어요. 창을 닫고 다시 열어 주세요."; return; }
+      var kd = state.kids[k.id];
+      kd.carry = (kd.carry || 0) - v;
+      if (!kd.log) kd.log = [];
+      kd.log.push({ d: todayKey(), p: v });
+      save(); closeModal(); render();
+    });
+    acts.appendChild(go);
+    acts.appendChild(no);
+    box.appendChild(acts);
+    if (pw) pw.focus();
+  }
+
+  // ---- 점수·미션 설정 (부모님) ----
+  function numOr(v, d) { return typeof v === "number" && isFinite(v) && v >= 0 ? v : d; }
+  function cloneList(a) { return a.map(function (x) { return JSON.parse(JSON.stringify(x)); }); }
+  function recompute() {
+    ALL = ITEMS.concat(ITEMS_PM);
+    valid = ALL.map(function (i) { return i.id; });
+    amIds = ITEMS.map(function (i) { return i.id; });
+    STUDY_IDS = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.id; });
+    PM_TOTAL = ITEMS_PM.filter(function (it) { return !it.pair && !it.optional; }).length + 1;
+    OPEN_AT = toObj(Math.min.apply(null, ITEMS.map(function (i) { return toMin(i.from); })));
+    CLOSE_AT = toObj(Math.max.apply(null, ITEMS.map(function (i) { return toMin(i.until); })));
+    PM_OPEN = toObj(Math.min.apply(null, ITEMS_PM.map(function (i) { return toMin(i.from); })));
+    PM_CLOSE = toObj(Math.max.apply(null, ITEMS_PM.map(function (i) { return toMin(i.until) + (i.grace || 0); })));
+  }
+  function itemsOk(it) {
+    var t = /^\d\d:\d\d$/;
+    return it && typeof it.id === "string" && typeof it.text === "string" && t.test(it.from || "") && t.test(it.until || "");
+  }
+  function applyCfg() {
+    var c = state.cfg || {}, pc = c.pay || {}, am, pm;
+    var ci = c.items;
+    var custom = ci && ci.am && ci.pm && ci.am.length && ci.am.every(itemsOk) && ci.pm.every(itemsOk) &&
+      ci.pm.some(function (i) { return i.id === "pw"; }) && ci.pm.some(function (i) { return i.id === "ps"; });
+    if (custom) { am = cloneList(ci.am); pm = cloneList(ci.pm); }
+    else {
+      am = cloneList(DEF_AM); pm = cloneList(DEF_PM);
+      am.concat(pm).forEach(function (i) {
+        var v = am.indexOf(i) > -1 ? pc.am : pc[i.id];
+        if (typeof v === "number" && v >= 0) i.pay = v;
+      });
+    }
+    am.concat(pm).forEach(function (i) { i.pay = numOr(i.pay, PAY); i.grace = numOr(i.grace, 0); });
+    ITEMS.length = 0; am.forEach(function (i) { ITEMS.push(i); });
+    ITEMS_PM.length = 0; pm.forEach(function (i) { ITEMS_PM.push(i); });
+    BONUS = numOr(c.BONUS, DEFC.BONUS);
+    ALL_BONUS = numOr(c.ALL_BONUS, DEFC.ALL_BONUS);
+    WEEK_BONUS = numOr(c.WEEK_BONUS, DEFC.WEEK_BONUS);
+    STUDY_STEP = numOr(c.STUDY_STEP, DEFC.STUDY_STEP) || DEFC.STUDY_STEP;
+    STUDY_BONUS = numOr(c.STUDY_BONUS, DEFC.STUDY_BONUS);
+    recompute();
+  }
+  function rebuildAll() { KIDS.forEach(function (k) { if (cards[k.id] && cards[k.id].rebuild) cards[k.id].rebuild(); }); }
+  function payDialog() {
+    var box = openModal("보너스 점수 설정");
+    box.appendChild(el("div", "", "보너스 점수를 바꿔요. 항목별 점수는 '미션 편집'에서 바꿀 수 있어요. 이번 주 기록도 새 점수로 다시 계산되고, 지난주까지 쌓인 점수는 그대로예요."));
+    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var inputs = {};
+    function row(key, label, val) {
+      var l = el("label", "chk");
+      l.appendChild(el("span", "", label));
+      var i = el("input", "numin");
+      i.type = "number"; i.min = "0"; i.max = "99999"; i.step = "1"; i.inputMode = "numeric";
+      i.value = String(val);
+      l.appendChild(i);
+      box.appendChild(l);
+      inputs[key] = i;
+    }
+    row("BONUS", "아침 올 클리어", BONUS);
+    row("ALL_BONUS", "하루 올 클리어", ALL_BONUS);
+    row("WEEK_BONUS", "주간 보너스 (월~금)", WEEK_BONUS);
+    row("STUDY_STEP", "공부 점수 기준", STUDY_STEP);
+    row("STUDY_BONUS", "기준마다 추가", STUDY_BONUS);
+    var msg = el("div", "msg");
+    msg.setAttribute("role", "alert");
+    box.appendChild(msg);
+    function keep(c) { var o = state.cfg || {}; if (o.items) c.items = o.items; if (o.pay) c.pay = o.pay; return c; }
+    var acts = el("div", "acts");
+    var go = el("button", "go", "저장하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      var c = {};
+      for (var k in inputs) {
+        var raw = inputs[k].value.trim(), n = Math.round(Number(raw));
+        if (raw === "" || !isFinite(n) || n < 0 || n > 99999) { msg.textContent = "0 이상의 숫자만 넣어 주세요"; return; }
+        c[k] = n;
+      }
+      if (c.STUDY_STEP < 1) { msg.textContent = "공부 점수 기준은 1 이상이어야 해요"; return; }
+      state.cfg = keep(c);
+      save(); applyCfg(); closeModal(); render();
+    });
+    acts.appendChild(go);
+    var rs = el("button", "", "기본값");
+    rs.type = "button";
+    rs.addEventListener("click", function () {
+      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      state.cfg = keep({});
+      save(); applyCfg(); closeModal(); render();
+    });
+    acts.appendChild(rs);
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    acts.appendChild(no);
+    box.appendChild(acts);
+    if (pw) pw.focus();
+  }
+  $("paybtn").addEventListener("click", payDialog);
+
+  function itemsDialog() {
+    var box = openModal("미션 편집");
+    box.classList.add("wide");
+    box.appendChild(el("div", "", "칸을 더하거나 빼고, 이름·점수·시간을 바꿔요. '저장하기'를 눌러야 적용돼요. 빼도 이미 체크한 기록은 남지만 점수 계산에서는 빠져요."));
+    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var model = { am: cloneList(ITEMS), pm: cloneList(ITEMS_PM) };
+    var tab = "am";
+    var tabs = el("div", "itabs");
+    var tabBtn = {};
+    [["am", "아침 미션"], ["pm", "저녁 미션"]].forEach(function (t) {
+      var b = el("button", "", t[1]);
+      b.type = "button";
+      b.addEventListener("click", function () { tab = t[0]; draw(); });
+      tabs.appendChild(b);
+      tabBtn[t[0]] = b;
+    });
+    box.appendChild(tabs);
+    var body = el("div", "");
+    body.style.cssText = "display:flex;flex-direction:column;gap:8px";
+    box.appendChild(body);
+    var msg = el("div", "msg");
+    msg.setAttribute("role", "alert");
+    box.appendChild(msg);
+
+    function fld(label, type, val, onset, attrs) {
+      var l = el("label", "ifld");
+      l.appendChild(el("span", "", label));
+      var i = el("input");
+      i.type = type;
+      i.value = String(val);
+      if (attrs) for (var a in attrs) i.setAttribute(a, attrs[a]);
+      i.addEventListener("input", function () { onset(i.value); });
+      l.appendChild(i);
+      return l;
+    }
+    function ibtn(txt, label, off, fn) {
+      var b = el("button", "ibtn", txt);
+      b.type = "button"; b.disabled = !!off;
+      b.setAttribute("aria-label", label);
+      b.addEventListener("click", fn);
+      return b;
+    }
+    function draw() {
+      tabBtn.am.setAttribute("aria-pressed", tab === "am" ? "true" : "false");
+      tabBtn.pm.setAttribute("aria-pressed", tab === "pm" ? "true" : "false");
+      body.textContent = "";
+      var list = model[tab];
+      list.forEach(function (it, idx) {
+        var r = el("div", "irow");
+        var l1 = el("div", "il1");
+        var nm = el("input", "iname");
+        nm.type = "text"; nm.maxLength = 10; nm.value = it.text; nm.disabled = !!it.pair;
+        nm.setAttribute("aria-label", "이름");
+        nm.addEventListener("input", function () { it.text = nm.value; });
+        l1.appendChild(nm);
+        l1.appendChild(ibtn("↑", "위로", idx === 0, function () { list.splice(idx, 1); list.splice(idx - 1, 0, it); draw(); }));
+        l1.appendChild(ibtn("↓", "아래로", idx === list.length - 1, function () { list.splice(idx, 1); list.splice(idx + 1, 0, it); draw(); }));
+        l1.appendChild(ibtn("✕", "삭제", it.pair || (tab === "am" && list.length <= 1), function () { list.splice(idx, 1); draw(); }));
+        r.appendChild(l1);
+        var fs = el("div", "ifs");
+        fs.appendChild(fld("시작", "time", it.from, function (v) { it.from = v; }));
+        fs.appendChild(fld("마감", "time", it.until, function (v) { it.until = v; }));
+        fs.appendChild(fld("점수(p)", "number", it.pay, function (v) { it.pay = v === "" ? NaN : Math.round(Number(v)); }, { min: "0", max: "99999", inputmode: "numeric" }));
+        fs.appendChild(fld("유예(분)", "number", it.grace || 0, function (v) { it.grace = v === "" ? NaN : Math.round(Number(v)); }, { min: "0", max: "120", inputmode: "numeric" }));
+        r.appendChild(fs);
+        if (it.pair) r.appendChild(el("div", "ichks", "세수·샤워는 둘 중 하나만 고르는 칸이라 이름은 고정이고 삭제할 수 없어요."));
+        if (tab === "pm" && !it.pair) {
+          var ck = el("div", "ichks");
+          [["optional", "선택 (안 해도 올 클리어)"], ["study", "공부 보너스에 포함"]].forEach(function (o) {
+            var l = el("label", "");
+            var c = el("input");
+            c.type = "checkbox"; c.checked = !!it[o[0]];
+            c.addEventListener("change", function () { it[o[0]] = c.checked; });
+            l.appendChild(c); l.appendChild(document.createTextNode(o[1]));
+            ck.appendChild(l);
+          });
+          r.appendChild(ck);
+        }
+        body.appendChild(r);
+      });
+      var add = el("button", "iadd", "+ 칸 추가");
+      add.type = "button";
+      add.addEventListener("click", function () {
+        var id = "n" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+        list.push(tab === "am" ? { id: id, text: "새 미션", pay: PAY, from: "07:00", until: "07:55", grace: 0 }
+                               : { id: id, text: "새 미션", pay: PAY, from: "18:00", until: "21:00", grace: 10 });
+        draw();
+        var rows = body.querySelectorAll(".irow"), last = rows[rows.length - 1];
+        if (last) { var ni = last.querySelector(".iname"); try { last.scrollIntoView({ block: "center" }); ni.focus(); ni.select(); } catch (e) {} }
+      });
+      body.appendChild(add);
+    }
+    draw();
+
+    function check() {
+      var names = { am: "아침", pm: "저녁" };
+      for (var t in names) {
+        var list = model[t];
+        if (!list.length) return names[t] + " 미션이 하나는 있어야 해요";
+        for (var i = 0; i < list.length; i++) {
+          var it = list[i], where = names[t] + " " + (i + 1) + "번째 칸: ";
+          it.text = (it.text || "").trim();
+          if (!it.text) return where + "이름을 적어 주세요";
+          if (!/^\d\d:\d\d$/.test(it.from || "") || !/^\d\d:\d\d$/.test(it.until || "")) return where + "시작·마감 시간을 넣어 주세요";
+          if (toMin(it.from) >= toMin(it.until)) return where + "마감이 시작보다 늦어야 해요";
+          if (!isFinite(it.pay) || it.pay < 0 || it.pay > 99999) return where + "점수는 0 이상의 숫자예요";
+          if (!isFinite(it.grace) || it.grace < 0 || it.grace > 120) return where + "유예는 0~120분이에요";
+        }
+      }
+      return "";
+    }
+    var acts = el("div", "acts");
+    var go = el("button", "go", "저장하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      var err = check();
+      if (err) { msg.textContent = err; return; }
+      var c = state.cfg || {};
+      delete c.pay;
+      c.items = { am: cloneList(model.am), pm: cloneList(model.pm) };
+      state.cfg = c;
+      save(); applyCfg(); rebuildAll(); closeModal(); render();
+    });
+    acts.appendChild(go);
+    var rs = el("button", "", "처음 항목으로");
+    rs.type = "button";
+    rs.addEventListener("click", function () {
+      model = { am: cloneList(DEF_AM), pm: cloneList(DEF_PM) };
+      msg.textContent = "처음 항목으로 되돌렸어요. 저장하기를 눌러야 적용돼요.";
+      draw();
+    });
+    acts.appendChild(rs);
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    acts.appendChild(no);
+    box.appendChild(acts);
+    if (pw) pw.focus();
+  }
+  $("editbtn").addEventListener("click", itemsDialog);
+
+  function pwDialog() {
+    var box = openModal("비밀번호 설정");
+    box.appendChild(el("div", "", state.pw ? "비밀번호를 바꾸거나 없앨 수 있어요." : "부모님 확인을 누를 때 물어보는 비밀번호예요."));
+    var cur = state.pw ? field(box, "지금 비밀번호", "password") : null;
+    var n1 = field(box, "새 비밀번호 (4자 이상)", "password");
+    var n2 = field(box, "새 비밀번호 한 번 더", "password");
+    var msg = el("div", "msg");
+    msg.setAttribute("role", "alert");
+    box.appendChild(msg);
+    var acts = el("div", "acts");
+    var go = el("button", "go", "저장하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      if (cur && !pwOk(cur.value)) { msg.textContent = "지금 비밀번호가 맞지 않아요"; return; }
+      if (n1.value.length < 4) { msg.textContent = "4자 이상으로 정해 주세요"; return; }
+      if (n1.value !== n2.value) { msg.textContent = "새 비밀번호가 서로 달라요"; return; }
+      state.pw = hashPw(n1.value);
+      save(); closeModal(); render();
+      $("pwbtn").textContent = "비밀번호 바꾸기";
+    });
+    acts.appendChild(go);
+    if (state.pw) {
+      var off = el("button", "", "비밀번호 없애기");
+      off.type = "button";
+      off.addEventListener("click", function () {
+        if (!pwOk(cur.value)) { msg.textContent = "지금 비밀번호가 맞지 않아요"; return; }
+        state.pw = "";
+        save(); closeModal();
+        $("pwbtn").textContent = "비밀번호 설정";
+      });
+      acts.appendChild(off);
+    }
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    acts.appendChild(no);
+    box.appendChild(acts);
+    (cur || n1).focus();
+  }
+  $("pwbtn").addEventListener("click", pwDialog);
+  $("pwbtn").textContent = state.pw ? "비밀번호 바꾸기" : "비밀번호 설정";
+
+  render();
+  // 열리는 시각과 닫히는 시각에 맞춰 화면이 저절로 바뀌도록 20초마다 확인합니다.
+  setInterval(render, 20000);
+  window.addEventListener("resize", render);
+  window.addEventListener("load", render);
+})();
+</script>
