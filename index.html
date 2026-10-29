@@ -98,8 +98,8 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .wdetail .db { background: var(--coin); color: var(--coin-ink); border-radius: 999px; padding: 1px 9px; font-weight: 700; }
 .wdetail .dg { color: var(--muted); font-weight: 700; margin: 4px 0 2px; }
 .wdetail .dl { display: flex; flex-wrap: wrap; gap: 3px; }
-.wdetail .dc { border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; color: var(--muted); text-decoration: line-through; opacity: 0.7; }
-.wdetail .dc.ok { background: var(--ok); border-color: var(--ok); color: var(--ok-ink); text-decoration: none; opacity: 1; font-weight: 700; }
+.wdetail .dc { border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; color: var(--ink); text-decoration: none; }
+.wdetail .dc.ok { background: var(--ok); border-color: var(--ok); color: var(--ok-ink); text-decoration: line-through; text-decoration-thickness: 1.5px; font-weight: 700; }
 .grp { margin-top: 14px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 0 8px 8px; position: relative; list-style: none; }
 .grp .gl { display: inline-block; position: relative; top: -11px; margin-bottom: -4px; background: var(--coin); color: var(--coin-ink); border-radius: 999px; padding: 1px 12px; font-size: 12px; font-weight: 700; line-height: 1.6; }
 .sbx { margin-top: 6px; border-top: 1.5px dashed var(--line); padding-top: 5px; text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); }
@@ -115,12 +115,19 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .mbox .chk input.etcnote { flex: 1; min-width: 0; width: auto; height: 32px; font-size: 14px; padding: 0 8px; border: 2px solid var(--line); border-radius: 8px; user-select: text; -webkit-user-select: text; }
 .mbox .chk input.numin { width: 84px; height: 32px; font-size: 15px; padding: 0 8px; border: 2px solid var(--line); border-radius: 8px; text-align: right; margin-left: auto; user-select: text; -webkit-user-select: text; }
 .mbox .chk .sec { font-weight: 700; }
+.rules { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
+.rules .rt { font-family: var(--font-display); font-size: 16px; color: var(--ink); }
+.rules b { color: var(--ink); }
+.rules .dv { font-weight: 700; color: var(--ok); }
 .wdetail .dinfo { margin-top: 8px; padding-top: 6px; border-top: 1.5px dashed var(--line); font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .wdetail .dinfo b { color: var(--ink); }
 .wdetail .dinfo .dv { font-weight: 700; color: var(--ok); }
 .setnow { font-size: 14px; }
 .setsum { text-align: center; font-weight: 700; font-size: 15px; display: flex; flex-direction: column; gap: 2px; }
 .setsum b { color: var(--ok); font-size: 20px; }
+.wdetail .db.dbx { background: transparent; color: var(--muted); border: 1.5px dashed var(--line); text-decoration: line-through; }
+.wdetail .dstudy { margin: 2px 0 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.wdetail .dstudy.ok { color: var(--ok); }
 .mbox.wide { width: min(100%, 460px); }
 .irow { border: 2px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; flex: none; }
 .il1 { display: flex; gap: 6px; align-items: center; }
@@ -326,6 +333,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 
   <div class="cols" id="cols"></div>
 
+  <div class="rules" id="rules"></div>
+
   <div class="foot">
     <span id="savemsg">이 기기에 저장돼요.</span>
     <button type="button" id="editbtn">편집</button>
@@ -347,7 +356,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   var STUDY_STEP = 120;
   var STUDY_BONUS = 30;
   var ALL_BONUS = 5; // 아침·저녁 미션을 모두 체크하면 받는 보너스
-  var WEEK_BONUS = 10; // 월~금을 모두 성공한 주에 받는 보너스
+  var WEEK_BONUS = 10; // 월~금 아침 미션을 모두 성공한 주에 받는 주간 아침 보너스
+  var WEEK_ALL_BONUS = 50; // 월~금 하루 올 클리어를 모두 한 주에 받는 주간 올 클리어 보너스
   // 쉬는 날은 시간 제한 없이 하루 종일 체크할 수 있어요. 토·일은 자동으로 쉬는 날이고,
   // 공휴일·방학·재량휴업일은 'YYYY-MM-DD' 형식으로 아래에 적어요. (평일 쉬는 날은 주간 보너스 조건에서 빠져요)
   var HOLIDAYS = ["2026-12-25", "2027-01-01"];
@@ -381,7 +391,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   var DEF_AM = JSON.parse(JSON.stringify(ITEMS)), DEF_PM = JSON.parse(JSON.stringify(ITEMS_PM));
   DEF_AM.forEach(function (it) { if (it.pay === undefined) it.pay = PAY; delete it.note; });
   DEF_PM.forEach(function (it) { if (STUDY_IDS.indexOf(it.id) > -1) it.study = true; if (it.pay === undefined) it.pay = PAY; delete it.note; });
-  var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS };
+  var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS };
   var KIDS = [{ id: "eoni", name: "어니" }, { id: "hyeoni", name: "혀니" }];
   var KEY = "morning-checklist-v2";
 
@@ -475,13 +485,26 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     if (c.pay) Object.keys(c.pay).forEach(function (k) { if (typeof c.pay[k] === "number") c.pay[k] = d10(c.pay[k]); });
     if (c.items) ["am", "pm"].forEach(function (g) { (c.items[g] || []).forEach(function (it) { if (typeof it.pay === "number") it.pay = d10(it.pay); }); });
   }
+  // 공부 보너스가 '쌓일 때마다'에서 '한 주에 기준 달성'으로 바뀌면서, 예전에 쌓아 둔 공부 점수에서 받은 보너스를 합계에 합쳐 둬요.
+  function migrate3(s) {
+    var c = s.cfg || {};
+    var step = typeof c.STUDY_STEP === "number" && c.STUDY_STEP > 0 ? c.STUDY_STEP : 120;
+    var bonus = typeof c.STUDY_BONUS === "number" ? c.STUDY_BONUS : 30;
+    KIDS.forEach(function (k) {
+      var kd = s.kids[k.id];
+      if (!kd) return;
+      if (kd.studyCarry) kd.carry = (kd.carry || 0) + Math.floor(kd.studyCarry / step) * bonus;
+      delete kd.studyCarry;
+    });
+  }
   function normalize(p) {
     var s = { kids: {} };
     s.cfg = (p && p.cfg) || {};
     if (p && p.kids) { s.kids = p.kids; s.confirmed = p.confirmed || {}; s.pw = p.pw || ""; s.ts = p.ts || 0; }
     KIDS.forEach(function (k) { if (!s.kids[k.id] || !s.kids[k.id].days) s.kids[k.id] = { days: {} }; if (!s.kids[k.id].adj) s.kids[k.id].adj = {}; if (!s.kids[k.id].conf) s.kids[k.id].conf = {}; if (!s.kids[k.id].off) s.kids[k.id].off = {}; });
     if (p && p.kids && !(p.ver >= 2)) { migrate(s); justMigrated = true; }
-    s.ver = 2;
+    if (p && p.kids && !(p.ver >= 3)) { migrate3(s); justMigrated = true; }
+    s.ver = 3;
     return s;
   }
   function save(quiet) {
@@ -498,10 +521,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function onlyValid(arr) { return (arr || []).filter(function (id) { return valid.indexOf(id) > -1; }); }
   function amOnly(arr) { return onlyValid(arr).filter(function (id) { return amIds.indexOf(id) > -1; }); }
   function payOf(id) { for (var i = 0; i < ALL.length; i++) if (ALL[i].id === id) return ALL[i].pay === undefined ? PAY : ALL[i].pay; return 0; }
-  function pmFull(arr) {
-    var v = onlyValid(arr);
-    return ITEMS_PM.every(function (it) { return it.pair || it.optional || v.indexOf(it.id) > -1; }) && (v.indexOf("pw") > -1 || v.indexOf("ps") > -1);
-  }
   function pmCount(arr) {
     var v = onlyValid(arr), n = 0;
     ITEMS_PM.forEach(function (it) { if (!it.pair && !it.optional && v.indexOf(it.id) > -1) n++; });
@@ -509,39 +528,59 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   var PM_TOTAL = ITEMS_PM.filter(function (it) { return !it.pair && !it.optional; }).length + 1;
   applyCfg();
-  function dayCoins(arr) {
-    var v = onlyValid(arr), n = 0;
-    v.forEach(function (id) { n += payOf(id); });
-    var am = amOnly(arr).length === ITEMS.length;
-    if (am) n += BONUS;
-    if (am && pmFull(arr)) n += ALL_BONUS;
-    return n;
-  }
+  // ---- 공부 점수(주 단위)와 하루 올 클리어 ----
   function studyDay(arr) {
     var n = 0;
     onlyValid(arr).forEach(function (id) { if (STUDY_IDS.indexOf(id) > -1) n += payOf(id); });
     return n;
   }
-  function studyOf(kid) {
-    var kd = state.kids[kid], n = kd.studyCarry || 0;
-    Object.keys(kd.days).forEach(function (d) { n += studyDay(kd.days[d]); });
+  function studyCount(arr) {
+    var v = onlyValid(arr);
+    return STUDY_IDS.filter(function (id) { return v.indexOf(id) > -1; }).length;
+  }
+  function isWeekdayK(k) { var w = dow(k); return w >= 1 && w <= 5 && HOLIDAYS.indexOf(k) === -1; }
+  // 그 주 월~금 공부 점수 (upTo: 앞에서부터 몇 요일까지 셀지)
+  function weekStudyPts(kid, mon, upTo) {
+    var ds = state.kids[kid].days, n = 0;
+    weekdaysOf(mon).slice(0, upTo == null ? 5 : upTo).forEach(function (d) { n += studyDay(ds[d]); });
     return n;
   }
-  // 그 주에 공부 미션(1~3번)을 모두 한 날 수, 그 주에 새로 받은 공부 보너스
-  function studyWeek(kid, mon) {
-    var kd = state.kids[kid], before = kd.studyCarry || 0, week = 0, full = 0;
-    Object.keys(kd.days).forEach(function (d) {
-      var v = studyDay(kd.days[d]);
-      if (d < mon) before += v;
-      else if (mondayOf(d) === mon) {
-        week += v;
-        var ids = onlyValid(kd.days[d]);
-        if (weekdaysOf(mon).indexOf(d) > -1 && STUDY_IDS.length && STUDY_IDS.every(function (id) { return ids.indexOf(id) > -1; })) full++;
-      }
-    });
-    return { days: full, gained: (Math.floor((before + week) / STUDY_STEP) - Math.floor(before / STUDY_STEP)) * STUDY_BONUS };
+  function weekClosed(mon) {
+    var fri = weekdaysOf(mon)[4], t = todayKey();
+    return t > fri || (t === fri && nowMinutes() > PM_CLOSE.h * 60 + PM_CLOSE.m);
   }
-  function studyBonus(kid) { return Math.floor(studyOf(kid) / STUDY_STEP) * STUDY_BONUS; }
+  function studyWeekBonus(kid, mon) { return STUDY_IDS.length && weekStudyPts(kid, mon) >= STUDY_STEP ? STUDY_BONUS : 0; }
+  // 공부 미션 조건: "ok"(인정) / "pending"(임시로 인정, 금요일에 확정) / "cancelled"(주 공부 점수가 모자라 취소) / "no"
+  function studyState(kid, key, arr) {
+    if (!STUDY_IDS.length) return "ok";
+    var cnt = studyCount(arr);
+    if (cnt === STUDY_IDS.length) return "ok";
+    if (!isWeekdayK(key)) return "no";
+    var mon = mondayOf(key), idx = weekdaysOf(mon).indexOf(key);
+    if (idx === 4 && weekStudyPts(kid, mon, 4) >= STUDY_STEP) return "ok"; // 목요일까지 채웠으면 금요일 공부는 안 해도 돼요
+    if (cnt >= Math.min(2, STUDY_IDS.length)) {
+      if (weekStudyPts(kid, mon) >= STUDY_STEP) return "ok";
+      return weekClosed(mon) ? "cancelled" : "pending";
+    }
+    return "no";
+  }
+  function pmOthers(arr) {
+    var v = onlyValid(arr);
+    return ITEMS_PM.every(function (it) { return it.pair || it.optional || it.study || v.indexOf(it.id) > -1; }) && (v.indexOf("pw") > -1 || v.indexOf("ps") > -1);
+  }
+  // 하루 올 클리어(아침 + 저녁) 상태
+  function allClearState(kid, key, arr) {
+    if (amOnly(arr).length !== ITEMS.length || !pmOthers(arr)) return "no";
+    return studyState(kid, key, arr);
+  }
+  function dayCoins(kid, key) {
+    var arr = daysOf(kid)[key], v = onlyValid(arr), n = 0;
+    v.forEach(function (id) { n += payOf(id); });
+    if (amOnly(arr).length === ITEMS.length) n += BONUS;
+    var st = allClearState(kid, key, arr);
+    if (st === "ok" || st === "pending") n += ALL_BONUS;
+    return n;
+  }
   function daysOf(kid) { return state.kids[kid].days; }
   // 부모님 확인은 어니·혀니 함께 하루에 한 번만 받아요.
   function confOf() {
@@ -556,17 +595,24 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var req = weekdaysOf(mon).filter(function (k) { return HOLIDAYS.indexOf(k) === -1 && !isOff(kid, k); });
     return req.length > 0 && req.every(function (k) { return fullDay(kid, k); });
   }
+  // 그 주 월~금(쉬는 평일 제외)에 하루 올 클리어를 모두 했는지
+  function weekAllClear(kid, mon) {
+    var req = weekdaysOf(mon).filter(function (k) { return HOLIDAYS.indexOf(k) === -1 && !isOff(kid, k); });
+    return req.length > 0 && req.every(function (k) { var st = allClearState(kid, k, daysOf(kid)[k]); return st === "ok" || st === "pending"; });
+  }
+  function weekExtra(kid, mon) {
+    return (weekDone(kid, mon) ? WEEK_BONUS : 0) + (weekAllClear(kid, mon) ? WEEK_ALL_BONUS : 0) + studyWeekBonus(kid, mon);
+  }
   function totalCoins(kid) {
     var n = state.kids[kid].carry || 0;
     var adj = state.kids[kid].adj;
-    n += studyBonus(kid);
     Object.keys(adj).forEach(function (d) { n += adj[d] || 0; });
     var ds = daysOf(kid);
     var weeks = {};
     Object.keys(ds).forEach(function (d) {
-      n += dayCoins(ds[d]);
+      n += dayCoins(kid, d);
       var mon = mondayOf(d);
-      if (!weeks[mon]) { weeks[mon] = true; if (weekDone(kid, mon)) n += WEEK_BONUS; }
+      if (!weeks[mon]) { weeks[mon] = true; n += weekExtra(kid, mon); }
     });
     return n;
   }
@@ -580,8 +626,10 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var kd = state.kids[k.id], ds = kd.days, weeks = {};
       Object.keys(ds).forEach(function (d) { var m = mondayOf(d); if (m < limit) weeks[m] = true; });
       Object.keys(weeks).forEach(function (m) {
-        var sum = weekDone(k.id, m) ? WEEK_BONUS : 0;
-        Object.keys(ds).forEach(function (d) { if (mondayOf(d) === m) { sum += dayCoins(ds[d]); kd.studyCarry = (kd.studyCarry || 0) + studyDay(ds[d]); delete ds[d]; } });
+        var sum = weekExtra(k.id, m);
+        var keys = Object.keys(ds).filter(function (d) { return mondayOf(d) === m; });
+        keys.forEach(function (d) { sum += dayCoins(k.id, d); });
+        keys.forEach(function (d) { delete ds[d]; });
         kd.carry = (kd.carry || 0) + sum;
         changed = true;
       });
@@ -612,19 +660,21 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     a.textContent = dateText(key) + " " + WD_NAMES[weekdaysOf(mondayOf(key)).indexOf(key)];
     var b = document.createElement("span");
     var aj = state.kids[kid].adj[key] || 0;
-    b.textContent = isOff(kid, key) ? (state.kids[kid].off[key] === "공휴일" ? "공휴일" : "쉬는 날") + (aj ? " (부모님 " + signed(aj) + ")" : "") : key > today ? "아직이에요" : (dayCoins(arr) + aj).toLocaleString("ko-KR") + "p" + (aj ? " (부모님 " + signed(aj) + ")" : "");
+    b.textContent = isOff(kid, key) ? (state.kids[kid].off[key] === "공휴일" ? "공휴일" : "쉬는 날") + (aj ? " (부모님 " + signed(aj) + ")" : "") : key > today ? "아직이에요" : (dayCoins(kid, key) + aj).toLocaleString("ko-KR") + "p" + (aj ? " (부모님 " + signed(aj) + ")" : "");
     h.appendChild(a); h.appendChild(b);
     box.appendChild(h);
     if (key <= today && !isOff(kid, key)) {
       var bg = el("div", "dbg");
-      var amFull = amOnly(arr).length === ITEMS.length, pmDone = pmFull(arr);
+      var amFull = amOnly(arr).length === ITEMS.length, st = allClearState(kid, key, arr);
       if (amFull) bg.appendChild(el("span", "db", "아침 올 클리어 +" + BONUS + "p"));
-      if (amFull && pmDone) bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p"));
-      if (dow(key) === 5) {
-        var sw = studyWeek(kid, mondayOf(key));
-        if (sw.days >= 4) bg.appendChild(el("span", "db", "공부 미션 " + sw.days + "일 클리어 +" + sw.gained + "p"));
-      }
+      if (st === "ok") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p"));
+      if (st === "pending") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p (임시)"));
+      if (st === "cancelled") bg.appendChild(el("span", "db dbx", "하루 올 클리어 취소 (주간 공부 " + STUDY_STEP + "p 미달)"));
       if (bg.childNodes.length) box.appendChild(bg);
+      if (isWeekdayK(key) && STUDY_IDS.length) {
+        var mon0 = mondayOf(key), pts = weekStudyPts(kid, mon0), got = pts >= STUDY_STEP;
+        box.appendChild(el("div", "dstudy" + (got ? " ok" : ""), "이번 주 공부 " + pts + " / " + STUDY_STEP + "p" + (got ? " · 공부 보너스 +" + STUDY_BONUS + "p" : "")));
+      }
     }
     function group(title, list) {
       var g = document.createElement("div");
@@ -659,21 +709,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     }
     group("아침 미션", ITEMS);
     group("저녁 미션", ITEMS_PM);
-    var info = el("div", "dinfo");
-    function line(name, val, desc) {
-      var r = el("div", "dir");
-      r.appendChild(el("b", "", name + " "));
-      r.appendChild(el("span", "dv", val));
-      r.appendChild(document.createTextNode(" " + desc));
-      info.appendChild(r);
-    }
-    line("아침 올 클리어", "+" + BONUS + "p", "· 아침 미션을 모두 하면");
-    line("하루 올 클리어", "+" + ALL_BONUS + "p", "· 아침·저녁 미션을 모두 하면");
-    var studyNames = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
-    if (studyNames.length) line("공부 보너스", "+" + STUDY_BONUS + "p", "· " + studyNames.join("·") + " 점수가 " + STUDY_STEP.toLocaleString("ko-KR") + "p 쌓일 때마다");
-    line("주간 보너스", "+" + WEEK_BONUS + "p", "· 월~금 아침 미션을 모두 하면");
-    line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요");
-    box.appendChild(info);
   }
 
   var $ = function (id) { return document.getElementById(id); };
@@ -833,6 +868,55 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     tv.classList.add("bump");
   }
 
+  // 지금 체크할 수 있는 칸이 바뀌면(시간이 지나 열리거나 잠기면) 그 칸이 화면에 보이도록 스크롤해요. 순서는 바꾸지 않아요.
+  var focusKey = null;
+  function focusActive(force) {
+    var c = cards[KIDS[0].id];
+    if (!c || c.root.classList.contains("off")) return;
+    var lis = c.root.querySelectorAll("ul.am > .grp, ul.pm > .grp"), li = null;
+    for (var i = 0; i < lis.length && !li; i++) {
+      var ts = lis[i].querySelectorAll(".task");
+      for (var j = 0; j < ts.length; j++) if (ts[j].getAttribute("aria-disabled") === "false") { li = lis[i]; break; }
+    }
+    var key = li ? li.parentNode.className + "|" + li.dataset.until : "none";
+    if (key === focusKey && !force) return;
+    focusKey = key;
+    if (!li || !$("modal").hidden) return;
+    var target = li.parentNode.firstElementChild === li ? (li.parentNode.classList.contains("am") ? c.amhead : c.pmhead) : li;
+    setTimeout(function () {
+      try {
+        var ctop = c.root.querySelector(".ctop");
+        var stick = (ctop ? ctop.getBoundingClientRect().height : 0) + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hh")) || 0) + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--wh")) || 0);
+        var y = target.getBoundingClientRect().top + window.pageYOffset - stick - 10;
+        window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      } catch (e) {}
+    }, 250);
+  }
+
+  function renderRules() {
+    var info = $("rules");
+    info.textContent = "";
+    info.appendChild(el("div", "rt", "보너스 안내"));
+    function line(name, val, desc) {
+      var r = el("div", "dir");
+      r.appendChild(el("b", "", name + " "));
+      r.appendChild(el("span", "dv", val));
+      r.appendChild(document.createTextNode(" " + desc));
+      info.appendChild(r);
+    }
+    line("아침 올 클리어", "+" + BONUS + "p", "· 아침 미션을 모두 하면");
+    line("하루 올 클리어", "+" + ALL_BONUS + "p", "· 아침·저녁 미션을 모두 하면");
+    var studyNames = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
+    if (studyNames.length) {
+      line("공부 보너스", "+" + STUDY_BONUS + "p", "· 한 주(월~금) " + studyNames.join("·") + " 점수가 " + STUDY_STEP.toLocaleString("ko-KR") + "p 이상이면");
+      var ex = el("div", "dir", "평일에는 공부 미션이 2개 이상이면 일단 하루 올 클리어로 쳐요. 금요일까지 " + STUDY_STEP.toLocaleString("ko-KR") + "p가 안 되면 그 올 클리어는 취소돼요. 목요일까지 " + STUDY_STEP.toLocaleString("ko-KR") + "p를 채우면 금요일 공부는 안 해도 올 클리어예요.");
+      info.appendChild(ex);
+    }
+    line("주간 아침 보너스", "+" + WEEK_BONUS + "p", "· 월~금 아침 미션을 모두 하면");
+    line("주간 올 클리어", "+" + WEEK_ALL_BONUS + "p", "· 월~금 하루 올 클리어를 모두 하면");
+    line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요");
+  }
+
   function render() {
     day = todayKey();
     rollover();
@@ -876,7 +960,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       renderDetail(c, k.id, sel.key && weekdaysOf(mon).indexOf(sel.key) > -1 ? sel.key : "", day);
       c.tv.textContent = totalCoins(k.id).toLocaleString("ko-KR");
       var all = n === ITEMS.length;
-      c.today.textContent = (dayCoins(done) + (state.kids[k.id].adj[day] || 0)).toLocaleString("ko-KR");
+      c.today.textContent = (dayCoins(k.id, day) + (state.kids[k.id].adj[day] || 0)).toLocaleString("ko-KR");
       c.fill.style.width = Math.round(n / ITEMS.length * 100) + "%";
       c.root.classList.toggle("all", all);
       c.st.textContent = all ? "보너스 +" + BONUS + "p!" : n + " / " + ITEMS.length;
@@ -893,8 +977,12 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       el.classList.toggle("sel", wdsD[i] === sel.key);
     });
     var wbNames = KIDS.filter(function (k) { return weekDone(k.id, monD); }).map(function (k) { return k.name; });
-    wbEl.textContent = wbNames.length ? "주간 보너스 " + wbNames.join("·") + " +" + WEEK_BONUS + "p!" : "";
-    wbEl.hidden = !wbNames.length;
+    var waNames = KIDS.filter(function (k) { return weekAllClear(k.id, monD); }).map(function (k) { return k.name; });
+    var wbParts = [];
+    if (wbNames.length) wbParts.push("주간 아침 보너스 " + wbNames.join("·") + " +" + WEEK_BONUS + "p!");
+    if (waNames.length) wbParts.push("주간 올 클리어 " + waNames.join("·") + " +" + WEEK_ALL_BONUS + "p!");
+    wbEl.textContent = wbParts.join("  ");
+    wbEl.hidden = !wbParts.length;
     try { document.documentElement.style.setProperty("--wh", weekEl.offsetHeight + "px"); } catch (e) {}
     var offNames = KIDS.filter(function (k) { return isOff(k.id, day); }).map(function (k) { return k.name; });
     $("offbtn").title = offNames.length ? "오늘 쉬는 날: " + offNames.join(", ") : "오늘 쉬는 날 설정";
@@ -905,6 +993,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       cf.setAttribute("aria-pressed", ok ? "true" : "false");
       cf.textContent = ok ? "부모님 확인 완료" + (aj ? " (" + signed(aj) + ")" : "") : "부모님 확인 받기";
     });
+    renderRules();
+    focusActive(false);
   }
 
   // ---- 창(모달)과 비밀번호 ----
@@ -1284,6 +1374,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     BONUS = numOr(c.BONUS, DEFC.BONUS);
     ALL_BONUS = numOr(c.ALL_BONUS, DEFC.ALL_BONUS);
     WEEK_BONUS = numOr(c.WEEK_BONUS, DEFC.WEEK_BONUS);
+    WEEK_ALL_BONUS = numOr(c.WEEK_ALL_BONUS, DEFC.WEEK_ALL_BONUS);
     STUDY_STEP = numOr(c.STUDY_STEP, DEFC.STUDY_STEP) || DEFC.STUDY_STEP;
     STUDY_BONUS = numOr(c.STUDY_BONUS, DEFC.STUDY_BONUS);
     recompute();
@@ -1298,7 +1389,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var model = { am: cloneList(ITEMS), pm: cloneList(ITEMS_PM) };
     var tab = "am", top = "mission";
     var bm = {};
-    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "STUDY_STEP", "STUDY_BONUS"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS }[k]); });
+    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "WEEK_ALL_BONUS", "STUDY_STEP", "STUDY_BONUS"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS }[k]); });
     var ttabs = el("div", "itabs"), ttabBtn = {};
     [["mission", "미션"], ["bonus", "보너스"]].forEach(function (t) {
       var b = el("button", "", t[1]);
@@ -1344,7 +1435,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       return b;
     }
     function drawBonus() {
-      [["BONUS", "아침 올 클리어"], ["ALL_BONUS", "하루 올 클리어"], ["WEEK_BONUS", "주간 보너스 (월~금)"], ["STUDY_STEP", "공부 점수 기준"], ["STUDY_BONUS", "기준마다 추가"]].forEach(function (row) {
+      [["BONUS", "아침 올 클리어"], ["ALL_BONUS", "하루 올 클리어"], ["WEEK_BONUS", "주간 아침 보너스 (월~금 아침)"], ["WEEK_ALL_BONUS", "주간 올 클리어 (월~금 하루 올 클리어)"], ["STUDY_STEP", "공부 보너스 기준 (한 주 점수)"], ["STUDY_BONUS", "공부 보너스 (기준 달성 시)"]].forEach(function (row) {
         var l = el("label", "chk");
         l.appendChild(el("span", "", row[1]));
         var i = el("input", "numin");
@@ -1515,6 +1606,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   setInterval(render, 20000);
   window.addEventListener("resize", render);
   window.addEventListener("load", render);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { focusKey = null; render(); } });
 })();
 </script>
 <script>try { if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js"); } catch (e) {}</script>
