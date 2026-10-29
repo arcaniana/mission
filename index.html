@@ -324,8 +324,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 
   <div class="foot">
     <span id="savemsg">이 기기에 저장돼요.</span>
-    <button type="button" id="editbtn">미션 편집</button>
-    <button type="button" id="paybtn">보너스 설정</button>
+    <button type="button" id="editbtn">편집</button>
     <button type="button" id="syncbtn">시트 연동</button>
     <button type="button" id="pwbtn">비밀번호 설정</button>
   </div>
@@ -1286,70 +1285,25 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     recompute();
   }
   function rebuildAll() { KIDS.forEach(function (k) { if (cards[k.id] && cards[k.id].rebuild) cards[k.id].rebuild(); }); }
-  function payDialog() {
-    var box = openModal("보너스 점수 설정");
-    box.appendChild(el("div", "", "보너스 점수를 바꿔요. 항목별 점수는 '미션 편집'에서 바꿀 수 있어요. 이번 주 기록도 새 점수로 다시 계산되고, 지난주까지 쌓인 점수는 그대로예요."));
-    var pw = state.pw ? field(box, "비밀번호", "password") : null;
-    var inputs = {};
-    function row(key, label, val) {
-      var l = el("label", "chk");
-      l.appendChild(el("span", "", label));
-      var i = el("input", "numin");
-      i.type = "number"; i.min = "0"; i.max = "99999"; i.step = "1"; i.inputMode = "numeric";
-      i.value = String(val);
-      l.appendChild(i);
-      box.appendChild(l);
-      inputs[key] = i;
-    }
-    row("BONUS", "아침 올 클리어", BONUS);
-    row("ALL_BONUS", "하루 올 클리어", ALL_BONUS);
-    row("WEEK_BONUS", "주간 보너스 (월~금)", WEEK_BONUS);
-    row("STUDY_STEP", "공부 점수 기준", STUDY_STEP);
-    row("STUDY_BONUS", "기준마다 추가", STUDY_BONUS);
-    var msg = el("div", "msg");
-    msg.setAttribute("role", "alert");
-    box.appendChild(msg);
-    function keep(c) { var o = state.cfg || {}; if (o.items) c.items = o.items; if (o.pay) c.pay = o.pay; return c; }
-    var acts = el("div", "acts");
-    var go = el("button", "go", "저장하기");
-    go.type = "button";
-    go.addEventListener("click", function () {
-      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
-      var c = {};
-      for (var k in inputs) {
-        var raw = inputs[k].value.trim(), n = Math.round(Number(raw));
-        if (raw === "" || !isFinite(n) || n < 0 || n > 99999) { msg.textContent = "0 이상의 숫자만 넣어 주세요"; return; }
-        c[k] = n;
-      }
-      if (c.STUDY_STEP < 1) { msg.textContent = "공부 점수 기준은 1 이상이어야 해요"; return; }
-      state.cfg = keep(c);
-      save(); applyCfg(); closeModal(); render();
-    });
-    acts.appendChild(go);
-    var rs = el("button", "", "기본값");
-    rs.type = "button";
-    rs.addEventListener("click", function () {
-      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
-      state.cfg = keep({});
-      save(); applyCfg(); closeModal(); render();
-    });
-    acts.appendChild(rs);
-    var no = el("button", "", "닫기");
-    no.type = "button";
-    no.addEventListener("click", closeModal);
-    acts.appendChild(no);
-    box.appendChild(acts);
-    if (pw) pw.focus();
-  }
-  $("paybtn").addEventListener("click", payDialog);
-
   function itemsDialog() {
-    var box = openModal("미션 편집");
+    var box = openModal("편집");
     box.classList.add("wide");
-    box.appendChild(el("div", "", "칸을 더하거나 빼고, 이름·점수·시간을 바꿔요. '저장하기'를 눌러야 적용돼요. 빼도 이미 체크한 기록은 남지만 점수 계산에서는 빠져요."));
+    var help = el("div", "");
+    box.appendChild(help);
     var pw = state.pw ? field(box, "비밀번호", "password") : null;
     var model = { am: cloneList(ITEMS), pm: cloneList(ITEMS_PM) };
-    var tab = "am";
+    var tab = "am", top = "mission";
+    var bm = {};
+    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "STUDY_STEP", "STUDY_BONUS"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS }[k]); });
+    var ttabs = el("div", "itabs"), ttabBtn = {};
+    [["mission", "미션"], ["bonus", "보너스"]].forEach(function (t) {
+      var b = el("button", "", t[1]);
+      b.type = "button";
+      b.addEventListener("click", function () { top = t[0]; msg.textContent = ""; draw(); });
+      ttabs.appendChild(b);
+      ttabBtn[t[0]] = b;
+    });
+    box.appendChild(ttabs);
     var tabs = el("div", "itabs");
     var tabBtn = {};
     [["am", "아침 미션"], ["pm", "저녁 미션"]].forEach(function (t) {
@@ -1385,10 +1339,30 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       b.addEventListener("click", fn);
       return b;
     }
+    function drawBonus() {
+      [["BONUS", "아침 올 클리어"], ["ALL_BONUS", "하루 올 클리어"], ["WEEK_BONUS", "주간 보너스 (월~금)"], ["STUDY_STEP", "공부 점수 기준"], ["STUDY_BONUS", "기준마다 추가"]].forEach(function (row) {
+        var l = el("label", "chk");
+        l.appendChild(el("span", "", row[1]));
+        var i = el("input", "numin");
+        i.type = "number"; i.min = "0"; i.max = "99999"; i.step = "1"; i.inputMode = "numeric";
+        i.value = bm[row[0]];
+        i.addEventListener("input", function () { bm[row[0]] = i.value; });
+        l.appendChild(i);
+        body.appendChild(l);
+      });
+    }
     function draw() {
+      ttabBtn.mission.setAttribute("aria-pressed", top === "mission" ? "true" : "false");
+      ttabBtn.bonus.setAttribute("aria-pressed", top === "bonus" ? "true" : "false");
+      tabs.hidden = top !== "mission";
+      help.textContent = top === "mission"
+        ? "칸을 더하거나 빼고, 이름·점수·시간을 바꿔요. 빼도 이미 체크한 기록은 남지만 점수 계산에서는 빠져요. '저장하기'를 눌러야 적용돼요."
+        : "보너스 점수를 바꿔요. 이번 주 기록도 새 점수로 다시 계산되고, 지난주까지 쌓인 점수는 그대로예요. '저장하기'를 눌러야 적용돼요.";
+      rs.textContent = top === "mission" ? "처음 항목으로" : "기본값";
       tabBtn.am.setAttribute("aria-pressed", tab === "am" ? "true" : "false");
       tabBtn.pm.setAttribute("aria-pressed", tab === "pm" ? "true" : "false");
       body.textContent = "";
+      if (top === "bonus") { drawBonus(); return; }
       var list = model[tab];
       list.forEach(function (it, idx) {
         var r = el("div", "irow");
@@ -1435,8 +1409,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       });
       body.appendChild(add);
     }
-    draw();
-
     function check() {
       var names = { am: "아침", pm: "저녁" };
       for (var t in names) {
@@ -1452,6 +1424,11 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
           if (!isFinite(it.grace) || it.grace < 0 || it.grace > 120) return where + "유예는 0~120분이에요";
         }
       }
+      for (var k in bm) {
+        var raw = String(bm[k]).trim(), n = Math.round(Number(raw));
+        if (raw === "" || !isFinite(n) || n < 0 || n > 99999) { top = "bonus"; draw(); return "보너스는 0 이상의 숫자예요"; }
+      }
+      if (Math.round(Number(bm.STUDY_STEP)) < 1) { top = "bonus"; draw(); return "공부 점수 기준은 1 이상이어야 해요"; }
       return "";
     }
     var acts = el("div", "acts");
@@ -1464,6 +1441,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var c = state.cfg || {};
       delete c.pay;
       c.items = { am: cloneList(model.am), pm: cloneList(model.pm) };
+      for (var bk in bm) c[bk] = Math.round(Number(bm[bk]));
       state.cfg = c;
       save(); applyCfg(); rebuildAll(); closeModal(); render();
     });
@@ -1471,8 +1449,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var rs = el("button", "", "처음 항목으로");
     rs.type = "button";
     rs.addEventListener("click", function () {
-      model = { am: cloneList(DEF_AM), pm: cloneList(DEF_PM) };
-      msg.textContent = "처음 항목으로 되돌렸어요. 저장하기를 눌러야 적용돼요.";
+      if (top === "mission") { model = { am: cloneList(DEF_AM), pm: cloneList(DEF_PM) }; msg.textContent = "처음 항목으로 되돌렸어요. 저장하기를 눌러야 적용돼요."; }
+      else { for (var k in DEFC) bm[k] = String(DEFC[k]); msg.textContent = "보너스를 기본값으로 되돌렸어요. 저장하기를 눌러야 적용돼요."; }
       draw();
     });
     acts.appendChild(rs);
@@ -1481,6 +1459,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     no.addEventListener("click", closeModal);
     acts.appendChild(no);
     box.appendChild(acts);
+    draw();
     if (pw) pw.focus();
   }
   $("editbtn").addEventListener("click", itemsDialog);
