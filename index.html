@@ -65,7 +65,7 @@ body {
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.4;
-  padding-block: 12px 20px;
+  padding-block: 0 20px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -73,7 +73,7 @@ body {
 body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 input { -webkit-user-select: text; user-select: text; }
 .wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-.top { position: sticky; top: 0; z-index: 30; background: var(--bg); display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px 0 6px; margin-top: -4px; }
+.top { position: sticky; top: 0; z-index: 30; background: var(--bg); display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px 0 6px; margin-top: 0; margin-bottom: -10px; padding-bottom: 16px; }
 .ctop { position: sticky; top: calc(var(--hh, 44px) + var(--wh, 34px)); z-index: 20; background: var(--bg); display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
 h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, calc((100vw - 116px) / 8.6), 36px); letter-spacing: -0.03em; line-height: 1.2; margin: 0; width: 100%; text-align: center; }
 .date { color: var(--muted); font-size: 12px; }
@@ -85,14 +85,14 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .pmhead.free { border-style: solid; border-color: var(--ok); }
 .pmhead b { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
 .lock b { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
-.week { position: sticky; top: var(--hh, 44px); z-index: 25; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 5px; padding: 2px 0 4px; }
+.week { position: sticky; top: var(--hh, 44px); z-index: 25; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 5px; padding: 2px 0 14px; margin-bottom: -10px; }
 .wdate { font-family: var(--font-display); font-size: 15px; line-height: 1; margin-right: 4px; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .wd { width: 46px; height: 26px; border-radius: 13px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1; cursor: pointer; padding: 0; font-family: inherit; background: linear-gradient(90deg, var(--wl, transparent) 50%, var(--wr, transparent) 50%); }
 .wd.rest { border-style: dashed; opacity: 0.6; }
 .wd.now { border-color: var(--ink); }
 .wd.full { color: var(--ok-ink); }
 .wd.sel { box-shadow: 0 0 0 2px var(--hl); }
-.wdetail { background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 6px 8px; font-size: 12px; }
+.wdetail { position: fixed; z-index: 20; top: 0; left: 0; width: 0; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; background: var(--surface); border: 1.5px solid var(--ink); border-radius: 10px; padding: 6px 8px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer; }
 .wdetail .dh { display: flex; justify-content: space-between; gap: 6px; font-weight: 700; margin-bottom: 4px; }
 .wdetail .dbg { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
 .wdetail .db { background: var(--coin); color: var(--coin-ink); border-radius: 999px; padding: 1px 9px; font-weight: 700; }
@@ -727,6 +727,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       '<div class="cbar"><i></i></div></div>' +
       '<div class="wdetail" hidden></div><div class="offmsg">오늘은 쉬는 날이에요</div><div class="pmhead amhead"></div><ul class="am"></ul><div class="pmhead"></div><ul class="pm"></ul><button type="button" class="confirm" aria-pressed="false">부모님 확인 받기</button>';
     sec.querySelector(".cname").textContent = k.name;
+    sec.querySelector(".wdetail").addEventListener("click", function () { sel.key = ""; render(); });
     sec.querySelector(".settle").addEventListener("click", function () { settleDialog(k); });
     var ul = sec.querySelector("ul.am");
     function addItems(ul, list) {
@@ -870,6 +871,25 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 
   // 지금 체크할 수 있는 칸이 바뀌면(시간이 지나 열리거나 잠기면) 그 칸이 화면에 보이도록 스크롤해요. 순서는 바꾸지 않아요.
   var focusKey = null;
+  // 요일 결과 창은 화면 위에 떠서 보여요. 페이지 길이와 스크롤 위치는 바뀌지 않아요.
+  function positionDetails() {
+    try {
+      var cs = getComputedStyle(document.documentElement);
+      var base = (parseFloat(cs.getPropertyValue("--hh")) || 0) + (parseFloat(cs.getPropertyValue("--wh")) || 0);
+      KIDS.forEach(function (k) {
+        var c = cards[k.id], d = c.detail;
+        if (d.hidden) return;
+        var ctop = c.root.querySelector(".ctop");
+        var top = Math.max(ctop ? ctop.getBoundingClientRect().bottom : 0, base + (ctop ? ctop.getBoundingClientRect().height : 0)) + 4;
+        var r = c.root.getBoundingClientRect();
+        d.style.left = r.left + "px";
+        d.style.width = r.width + "px";
+        d.style.top = top + "px";
+        d.style.maxHeight = Math.max(80, window.innerHeight - top - 10) + "px";
+      });
+    } catch (e) {}
+  }
+
   function focusActive(force) {
     var c = cards[KIDS[0].id];
     if (!c || c.root.classList.contains("off")) return;
@@ -984,6 +1004,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     wbEl.textContent = wbParts.join("  ");
     wbEl.hidden = !wbParts.length;
     try { document.documentElement.style.setProperty("--wh", weekEl.offsetHeight + "px"); } catch (e) {}
+    positionDetails();
     var offNames = KIDS.filter(function (k) { return isOff(k.id, day); }).map(function (k) { return k.name; });
     $("offbtn").title = offNames.length ? "오늘 쉬는 날: " + offNames.join(", ") : "오늘 쉬는 날 설정";
     $("offbtn").classList.toggle("on", offNames.length > 0);
@@ -1605,6 +1626,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   // 열리는 시각과 닫히는 시각에 맞춰 화면이 저절로 바뀌도록 20초마다 확인합니다.
   setInterval(render, 20000);
   window.addEventListener("resize", render);
+  window.addEventListener("scroll", positionDetails, { passive: true });
   window.addEventListener("load", render);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { focusKey = null; render(); } });
 })();
