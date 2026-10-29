@@ -325,7 +325,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 <main class="wrap">
   <header class="top">
     <h1>어니 혀니 매일 미션</h1>
-    <button type="button" class="offbtn" id="offbtn">쉬는<br>날</button>
+    <button type="button" class="offbtn" id="offbtn">미션<br>설정</button>
   </header>
 
 
@@ -388,6 +388,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   ];
   var ALL = ITEMS.concat(ITEMS_PM);
   // 부모님이 '미션 편집'에서 바꾸기 전의 처음 항목들
+  var BASE_AM, BASE_PM;
   var DEF_AM = JSON.parse(JSON.stringify(ITEMS)), DEF_PM = JSON.parse(JSON.stringify(ITEMS_PM));
   DEF_AM.forEach(function (it) { if (it.pay === undefined) it.pay = PAY; delete it.note; });
   DEF_PM.forEach(function (it) { if (STUDY_IDS.indexOf(it.id) > -1) it.study = true; if (it.pay === undefined) it.pay = PAY; delete it.note; });
@@ -454,6 +455,13 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var it = ALL[i];
       if (it.id === id) {
         var n = nowMinutes();
+        var ai = ITEMS.indexOf(it);
+        if (ai > 0) {
+          // 아침 미션은 차례대로 열려요: 1번 → 2번 → 3번을 체크하면 나머지가 열려요. (닫히는 시간은 그대로)
+          var done = kid ? (state.kids[kid].days[todayKey()] || []) : null;
+          if (done && done.indexOf(id) === -1 && done.indexOf(ITEMS[Math.min(ai, 3) - 1].id) === -1) return false;
+          return n <= toMin(it.until) + (it.grace || 0);
+        }
         return n >= toMin(it.from) && n <= toMin(it.until) + (it.grace || 0);
       }
     }
@@ -591,12 +599,18 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function isOff(kid, k) { return !!state.kids[kid].off[k]; }
   function fullDay(kid, k) { return amOnly(daysOf(kid)[k]).length === ITEMS.length; }
   // 그 주 월~금(쉬는 평일 제외)을 모두 성공했는지
+  // 평일에 쉰 날(공휴일 포함)이 2일 이상이면 주간 보너스는 없어요. 월~금 중 4일은 해야 받아요.
+  function offDays(kid, mon) {
+    return weekdaysOf(mon).filter(function (k) { return HOLIDAYS.indexOf(k) > -1 || isOff(kid, k); }).length;
+  }
   function weekDone(kid, mon) {
+    if (offDays(kid, mon) > 1) return false;
     var req = weekdaysOf(mon).filter(function (k) { return HOLIDAYS.indexOf(k) === -1 && !isOff(kid, k); });
     return req.length > 0 && req.every(function (k) { return fullDay(kid, k); });
   }
   // 그 주 월~금(쉬는 평일 제외)에 하루 올 클리어를 모두 했는지
   function weekAllClear(kid, mon) {
+    if (offDays(kid, mon) > 1) return false;
     var req = weekdaysOf(mon).filter(function (k) { return HOLIDAYS.indexOf(k) === -1 && !isOff(kid, k); });
     return req.length > 0 && req.every(function (k) { var st = allClearState(kid, k, daysOf(kid)[k]); return st === "ok" || st === "pending"; });
   }
@@ -924,6 +938,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       r.appendChild(document.createTextNode(" " + desc));
       info.appendChild(r);
     }
+    info.appendChild(el("div", "dir", "아침 미션은 차례대로 열려요. 1번을 체크하면 2번, 2번을 체크하면 3번, 3번을 체크하면 나머지가 열려요. (닫히는 시간은 그대로예요)"));
     line("아침 올 클리어", "+" + BONUS + "p", "· 아침 미션을 모두 하면");
     line("하루 올 클리어", "+" + ALL_BONUS + "p", "· 아침·저녁 미션을 모두 하면");
     var studyNames = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
@@ -934,7 +949,11 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     }
     line("주간 아침 보너스", "+" + WEEK_BONUS + "p", "· 월~금 아침 미션을 모두 하면");
     line("주간 올 클리어", "+" + WEEK_ALL_BONUS + "p", "· 월~금 하루 올 클리어를 모두 하면");
+    info.appendChild(el("div", "dir", "주간 보너스는 월~금 중 4일 이상 해야 받아요. (공휴일·쉬는 날 포함 하루까지만 쉴 수 있어요)"));
     line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요");
+    if (state.cfg && state.cfg.vac && state.cfg.vac.on) {
+      info.appendChild(el("div", "dir", "방학 모드: 아침 미션이 " + vacShiftOf(BASE_AM) + "분 늦춰져요." + (state.cfg.vac.pmEarly !== false ? " 저녁 미션은 아침부터 열려 있어요." : "")));
+    }
   }
 
   function render() {
@@ -1006,7 +1025,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     try { document.documentElement.style.setProperty("--wh", weekEl.offsetHeight + "px"); } catch (e) {}
     positionDetails();
     var offNames = KIDS.filter(function (k) { return isOff(k.id, day); }).map(function (k) { return k.name; });
-    $("offbtn").title = offNames.length ? "오늘 쉬는 날: " + offNames.join(", ") : "오늘 쉬는 날 설정";
+    $("offbtn").title = offNames.length ? "오늘 쉬는 날: " + offNames.join(", ") : "미션 설정";
     $("offbtn").classList.toggle("on", offNames.length > 0);
     KIDS.forEach(function (k) {
       var kd = state.kids[k.id], cf = cards[k.id].confirm;
@@ -1112,8 +1131,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 
   function offDialog() {
     day = todayKey();
-    var box = openModal("쉬는 날 설정");
-    box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요."));
+    var box = openModal("미션 설정");
+    box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. (방학에 시간을 옮기려면 아래 방학 모드를 켜세요.) 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요. (공휴일 포함 평일에 이틀 이상 쉬면 주간 보너스는 없어요)"));
     var pw = state.pw ? field(box, "비밀번호", "password") : null;
     var cur = {};
     KIDS.forEach(function (k) { cur[k.id] = state.kids[k.id].off[day]; });
@@ -1134,6 +1153,16 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var kidBox = {};
     KIDS.forEach(function (k) { kidBox[k.id] = mk(k.name + " 쉬는 날", cur[k.id] && !allHol && !allEtc); });
     var hol = mk("공휴일", allHol), etc = mk("기타", allEtc);
+    var vc0 = state.cfg && state.cfg.vac || {};
+    var vshift = vacShiftOf(BASE_AM);
+    var vacBox = mk("방학 모드", !!vc0.on);
+    var vin = el("input", "etcnote");
+    vin.type = "number"; vin.min = "0"; vin.max = "600"; vin.step = "5"; vin.inputMode = "numeric";
+    vin.placeholder = "아침 미션 늦출 시간(분)"; vin.value = String(Math.max(0, vshift));
+    vin.setAttribute("aria-label", "아침 미션을 늦출 시간(분)");
+    vacBox.parentNode.appendChild(vin);
+    function showVac() { vin.hidden = !vacBox.checked; }
+    vacBox.addEventListener("change", showVac); showVac();
     var note = el("input", "etcnote");
     note.type = "text"; note.maxLength = 20; note.placeholder = "사유 (선택)"; note.value = etcNote;
     note.setAttribute("aria-label", "기타 사유");
@@ -1166,6 +1195,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         else if (kidBox[k.id].checked) off[day] = true;
         else delete off[day];
       });
+      var c0 = state.cfg || {}, was = c0.vac || {};
+      var nshift = Math.max(0, Math.min(600, Math.round(Number(vin.value) || 0)));
+      if (vacBox.checked !== !!was.on || (vacBox.checked && nshift !== vshift)) { c0.vac = { on: vacBox.checked, shift: nshift, pmEarly: true }; state.cfg = c0; save(); applyCfg(); rebuildAll(); closeModal(); render(); return; }
       save(); closeModal(); render();
     });
     acts.appendChild(go);
@@ -1360,6 +1392,22 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 
   // ---- 점수·미션 설정 (부모님) ----
   function numOr(v, d) { return typeof v === "number" && isFinite(v) && v >= 0 ? v : d; }
+  // 방학 모드에서 아침 첫 미션이 열리는 시각 (저장된 값이 없으면 평소보다 60분 뒤)
+  function vacStartOf(amList) {
+    var v = state.cfg && state.cfg.vac || {};
+    if (v.start && /^\d\d:\d\d$/.test(v.start)) return v.start;
+    var b = amList.length ? Math.min.apply(null, amList.map(function (i) { return toMin(i.from); })) : 420;
+    return fmtMin(b + Math.round(+v.shift || 60));
+  }
+  function vacShiftOf(amList) {
+    var v = state.cfg && state.cfg.vac || {};
+    if (v.start && /^\d\d:\d\d$/.test(v.start)) {
+      var b = amList.length ? Math.min.apply(null, amList.map(function (i) { return toMin(i.from); })) : 420;
+      return toMin(v.start) - b;
+    }
+    return typeof v.shift === "number" && isFinite(v.shift) ? Math.round(v.shift) : 60;
+  }
+  function fmtMin(m) { m = Math.max(0, Math.min(1439, m)); return (m < 600 ? "0" : "") + Math.floor(m / 60) + ":" + (m % 60 < 10 ? "0" : "") + (m % 60); }
   function cloneList(a) { return a.map(function (x) { return JSON.parse(JSON.stringify(x)); }); }
   function recompute() {
     ALL = ITEMS.concat(ITEMS_PM);
@@ -1390,6 +1438,21 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       });
     }
     am.concat(pm).forEach(function (i) { i.pay = numOr(i.pay, PAY); i.grace = numOr(i.grace, 0); });
+    BASE_AM = cloneList(am); BASE_PM = cloneList(pm);
+    // 방학 모드: 아침 미션은 시간을 늦추고(또는 당기고), 저녁 미션은 마감은 그대로 두고 아침부터 바로 열어 둬요.
+    var vc = c.vac, vOn = !!(vc && vc.on), sh = 0, firstFrom = 0;
+    if (vOn) {
+      var base0 = am.length ? Math.min.apply(null, am.map(function (i) { return toMin(i.from); })) : 0;
+      sh = vc.start && /^\d\d:\d\d$/.test(vc.start) ? toMin(vc.start) - base0 : (typeof vc.shift === "number" && isFinite(vc.shift) ? Math.round(vc.shift) : 60);
+    }
+    if (sh) am.forEach(function (i) {
+      var f = Math.max(0, Math.min(1438, toMin(i.from) + sh)), u = Math.max(f + 1, Math.min(1439, toMin(i.until) + sh));
+      i.from = fmtMin(f); i.until = fmtMin(u);
+    });
+    if (vOn && vc.pmEarly !== false && am.length) {
+      firstFrom = Math.min.apply(null, am.map(function (i) { return toMin(i.from); }));
+      pm.forEach(function (i) { if (toMin(i.until) > firstFrom) i.from = fmtMin(firstFrom); });
+    }
     ITEMS.length = 0; am.forEach(function (i) { ITEMS.push(i); });
     ITEMS_PM.length = 0; pm.forEach(function (i) { ITEMS_PM.push(i); });
     BONUS = numOr(c.BONUS, DEFC.BONUS);
@@ -1407,8 +1470,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var help = el("div", "");
     box.appendChild(help);
     var pw = state.pw ? field(box, "비밀번호", "password") : null;
-    var model = { am: cloneList(ITEMS), pm: cloneList(ITEMS_PM) };
-    var tab = "am", top = "mission";
+    var model = { am: cloneList(BASE_AM), pm: cloneList(BASE_PM) };
+        var tab = "am", top = "mission";
     var bm = {};
     ["BONUS", "ALL_BONUS", "WEEK_BONUS", "WEEK_ALL_BONUS", "STUDY_STEP", "STUDY_BONUS"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS }[k]); });
     var ttabs = el("div", "itabs"), ttabBtn = {};
