@@ -479,9 +479,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         var n = nowMinutes();
         var ai = ITEMS.indexOf(it);
         if (ai > 0) {
-          // 아침 미션은 차례대로 열려요: 1번 → 2번 → 3번을 체크하면 나머지가 열려요. (닫히는 시간은 그대로)
+          // 아침 미션은 차례대로 열려요: 1번 → 2번 → 3번을 체크하면 나머지가 열려요. 앞 미션을 안 했어도 시작 시각이 되면 열려요. (닫히는 시간은 그대로)
           var done = kid ? (state.kids[kid].days[todayKey()] || []) : null;
-          if (done && done.indexOf(id) === -1 && done.indexOf(ITEMS[Math.min(ai, 3) - 1].id) === -1) return false;
+          if (done && done.indexOf(id) === -1 && done.indexOf(ITEMS[Math.min(ai, 3) - 1].id) === -1 && n < toMin(it.from)) return false; // 앞 미션을 안 했어도 이 미션의 시작 시각이 되면 열려요
           return n <= toMin(it.until) + (it.grace || 0);
         }
         return n >= toMin(it.from) && n <= toMin(it.until) + (it.grace || 0);
@@ -978,7 +978,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       r.appendChild(document.createTextNode(" " + desc));
       info.appendChild(r);
     }
-    info.appendChild(el("div", "dir", "아침 미션은 차례대로 열려요. 1번을 체크하면 2번, 2번을 체크하면 3번, 3번을 체크하면 나머지가 열려요. (닫히는 시간은 그대로예요)"));
+    info.appendChild(el("div", "dir", "아침 미션은 차례대로 열려요. 1번을 체크하면 2번, 2번을 체크하면 3번, 3번을 체크하면 나머지가 열려요. 앞 미션을 안 했어도 그 미션의 시작 시각이 되면 열려요. (닫히는 시간은 그대로예요)"));
     line("아침 올 클리어", "+" + BONUS + "p", "· 아침 미션을 모두 하면");
     line("하루 올 클리어", "+" + ALL_BONUS + "p", "· 아침·저녁 미션을 모두 하면");
     var studyNames = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
