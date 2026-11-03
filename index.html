@@ -117,9 +117,11 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .offbtn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .offmsg { display: none; background: var(--surface); border: 2px dashed var(--muted); border-radius: 14px; padding: 18px 10px; text-align: center; font-weight: 700; font-size: 15px; line-height: 1.5; }
 .card.off .offmsg { display: block; }
-.card .pmoffmsg { display: none; }
-.card.pmoff .pmoffmsg { display: block; margin-top: 8px; }
-.card.pmoff .pmhead:not(.amhead), .card.pmoff ul.pm { display: none; }
+.card.sun ul.am, .card.sun .amhead, .card.sun .cbar, .card.sun .cmeta .st { display: none; }
+.card.sat ul.am, .card.sat .amhead, .card.sat .cbar, .card.sat .cmeta .st, .card.sat .pmhead { display: none; }
+.card .satmsg { display: none; }
+.card.sat .satmsg, .card.sun .satmsg { display: block; margin-top: 6px; background: var(--surface); border: 2px dashed var(--coin); border-radius: 14px; padding: 8px 10px; text-align: center; font-weight: 700; font-size: 13px; line-height: 1.5; }
+.card li[hidden], .card .grp[hidden] { display: none !important; }
 .card.off ul.am, .card.off .pmhead, .card.off .amhead, .card.off ul.pm, .card.off .cbar, .card.off .cmeta .st { display: none; }
 .mbox .chk { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; padding: 6px 10px; flex: none; border: 2px solid var(--line); border-radius: 12px; }
 .mbox .chk input { width: 20px; height: 20px; }
@@ -444,6 +446,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function keyOf(ms) { return new Date(ms).toISOString().slice(0, 10); }
   function dateText(k) { return (+k.slice(5, 7)) + "." + (+k.slice(8, 10)) + "."; } // 예: 10.29.
   function dow(k) { return new Date(dayMs(k)).getUTCDay(); } // 0=일, 6=토
+  // 토요일은 미션이 닫혀 있고, 일요일은 저녁 미션만 (다음 날 등교 때문에) 열려요. 평일 공휴일은 하루 종일 열려요.
+  function isHolidayWk(k) { var w = dow(k); return w !== 0 && w !== 6 && HOLIDAYS.indexOf(k) > -1; }
   function isRest(k) { var w = dow(k); return w === 0 || w === 6 || HOLIDAYS.indexOf(k) > -1; }
   function mondayOf(k) { return keyOf(dayMs(k) - ((dow(k) + 6) % 7) * 86400000); }
   function weekdaysOf(mon) {
@@ -453,7 +457,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
 
   function openState(pm) {
-    if (isRest(todayKey())) return "open";
+    if (isHolidayWk(todayKey())) return "open";
     var n = nowMinutes();
     var o = pm ? PM_OPEN : OPEN_AT, c = pm ? PM_CLOSE : CLOSE_AT;
     if (n < o.h * 60 + o.m) return "before";
@@ -476,8 +480,14 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   function canCheck(id, kid) {
     if (kid && pairInfo(kid, id)) return false;
-    if (kid && isPmOff(kid, todayKey()) && ITEMS_PM.some(function (x) { return x.id === id; })) return false;
-    if (isRest(todayKey())) return true;
+    var tk = todayKey(), wd = dow(tk);
+    if (wd === 6) {
+      // 토요일: 이번 주 공부 보너스를 아직 못 채웠으면 공부 미션만 하루 종일 열려요.
+      return !!kid && STUDY_IDS.indexOf(id) > -1 && !weekStudyMet(kid, mondayOf(tk), 5);
+    }
+    if (wd === 0 && ITEMS.some(function (x) { return x.id === id; })) return false;
+    if (wd === 0 && kid && STUDY_IDS.indexOf(id) > -1 && weekStudyMet(kid, mondayOf(tk), 6) && (state.kids[kid].days[tk] || []).indexOf(id) === -1) return false; // 토요일까지 공부 보너스를 채웠으면 일요일 공부는 쉬어요
+    if (isHolidayWk(tk)) return true;
     for (var i = 0; i < ALL.length; i++) {
       var it = ALL[i];
       if (it.id === id) {
@@ -614,7 +624,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   // 하루 올 클리어(아침 + 저녁) 상태
   function allClearState(kid, key, arr) {
-    if (isPmOff(kid, key)) return amOnly(arr).length === ITEMS.length ? "ok" : "no"; // 저녁 미션을 쉬는 날은 아침만 다 하면 돼요
     if (amOnly(arr).length !== ITEMS.length || !pmOthers(arr)) return "no";
     return studyState(kid, key, arr);
   }
@@ -633,9 +642,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     return state.confirmed;
   }
   // 그날 부모님이 '쉬는 날'로 정한 날 (체험학습·개인 사정 등)
-  function isOff(kid, k) { var v = state.kids[kid].off[k]; return !!v && v !== "오후"; }
-  // 오후 쉬는 날: 아침 미션은 하고, 저녁 미션만 쉬는 날(행사 등)
-  function isPmOff(kid, k) { return state.kids[kid].off[k] === "오후"; }
+  function isOff(kid, k) { return !!state.kids[kid].off[k]; }
   function fullDay(kid, k) { return amOnly(daysOf(kid)[k]).length === ITEMS.length; }
   // 그 주 월~금(쉬는 평일 제외)을 모두 성공했는지
   // 평일에 쉰 날(공휴일 포함)이 2일 이상이면 주간 보너스는 없어요. 월~금 중 4일은 해야 받아요.
@@ -721,7 +728,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var amFull = amOnly(arr).length === ITEMS.length, st = allClearState(kid, key, arr);
       if (amFull) bg.appendChild(el("span", "db", "아침 올 클리어 +" + BONUS + "p"));
       if (st === "ok") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p"));
-      if (isPmOff(kid, key)) bg.appendChild(el("span", "db", "저녁 미션 쉬는 날"));
       if (st === "pending") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p (임시)"));
       if (st === "cancelled") bg.appendChild(el("span", "db dbx", "하루 올 클리어 취소 (주간 공부 " + STUDY_TIMES + "번씩 미달)"));
       if (bg.childNodes.length) box.appendChild(bg);
@@ -783,7 +789,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p</span><button type="button" class="settle">정산</button></span></div>' +
       '<div class="cmeta"><span class="tw">오늘 <b class="today">0</b>p</span><span class="st"></span></div>' +
       '<div class="cbar"><i></i></div></div>' +
-      '<div class="wdetail" hidden></div><div class="offmsg">오늘은 쉬는 날이에요</div><div class="pmhead amhead"></div><ul class="am"></ul><div class="pmhead"></div><div class="offmsg pmoffmsg">오늘은 저녁 미션을 쉬어요</div><ul class="pm"></ul><button type="button" class="confirm" aria-pressed="false">부모님 확인 받기</button>';
+      '<div class="wdetail" hidden></div><div class="offmsg">오늘은 쉬는 날이에요</div><div class="satmsg"></div><div class="pmhead amhead"></div><ul class="am"></ul><div class="pmhead"></div><ul class="pm"></ul><button type="button" class="confirm" aria-pressed="false">부모님 확인 받기</button>';
     sec.querySelector(".cname").textContent = k.name;
     sec.querySelector(".wdetail").addEventListener("click", function () { sel.key = ""; render(); });
     sec.querySelector(".settle").addEventListener("click", function () { settleDialog(k); });
@@ -1011,6 +1017,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     }
     line("주간 아침 보너스", "+" + WEEK_BONUS + "p", "· 월~금 아침 미션을 모두 하면");
     line("주간 올 클리어", "+" + WEEK_ALL_BONUS + "p", "· 월~금 하루 올 클리어를 모두 하면");
+    info.appendChild(el("div", "dir", "토요일에는 주중에 공부 보너스를 달성했으면 푹 쉬고, 못 했으면 공부 미션만 열려서 채울 수 있어요. 일요일은 저녁 미션만 열리고, 공부 보너스를 못 채웠으면 공부 미션도 함께 보여요. (토·일 공부도 주 공부 횟수에 들어가요.)"));
     info.appendChild(el("div", "dir", "주간 보너스는 월~금 중 4일 이상 해야 받아요. (공휴일·쉬는 날 포함 하루까지만 쉴 수 있어요)"));
     line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요");
     if (state.cfg && state.cfg.vac && state.cfg.vac.on) {
@@ -1022,14 +1029,35 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     day = todayKey();
     rollover();
     try { document.documentElement.style.setProperty("--hh", document.querySelector(".top").offsetHeight + "px"); } catch (e) {}
-    var rest = isRest(day);
+    var rest = isHolidayWk(day), wdNow = dow(day);
     KIDS.forEach(function (k) {
       var c = cards[k.id];
       var done = onlyValid(daysOf(k.id)[day]);
-      c.root.classList.toggle("off", isOff(k.id, day));
-      c.root.classList.toggle("pmoff", isPmOff(k.id, day));
+      var monNow = mondayOf(day), satDone = wdNow === 6 && !isOff(k.id, day) && (!STUDY_IDS.length || weekStudyMet(k.id, monNow, 5));
+      var satStudy = wdNow === 6 && !isOff(k.id, day) && !satDone;
+      var sunOn = wdNow === 0 && !isOff(k.id, day) && STUDY_IDS.length > 0;
+      var sunMet = sunOn && weekStudyMet(k.id, monNow, 6);
+      c.root.classList.toggle("off", isOff(k.id, day) || satDone);
+      c.root.classList.toggle("sat", satStudy);
+      Array.prototype.forEach.call(c.root.querySelectorAll("ul.pm ul.gi > li"), function (li) {
+        var ids = Array.prototype.map.call(li.querySelectorAll(".task[data-id]"), function (b) { return b.dataset.id; });
+        var isStudy = ids.length > 0 && ids.every(function (id) { return STUDY_IDS.indexOf(id) > -1; });
+        li.hidden = (satStudy && !isStudy) || (sunMet && isStudy);
+      });
+      Array.prototype.forEach.call(c.root.querySelectorAll("ul.pm .grp"), function (g) {
+        g.hidden = satStudy && !g.querySelector("ul.gi > li:not([hidden])");
+      });
+      if (sunOn) {
+        var cnt2 = weekStudyCounts(k.id, monNow), nmOf2 = function (id) { var t = ITEMS_PM.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
+        c.root.querySelector(".satmsg").textContent = sunMet ? "이번 주 공부 보너스를 달성했어요! 오늘은 공부를 쉬어요 🎉" : "공부 보너스 +" + STUDY_BONUS + "p 달성해봐요! " + STUDY_IDS.map(function (id) { return nmOf2(id) + " " + cnt2[id] + "/" + STUDY_TIMES; }).join(" · ");
+      }
+      if (satStudy) {
+        var cnt = weekStudyCounts(k.id, monNow), nmOf = function (id) { var t = ITEMS_PM.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
+        c.root.querySelector(".satmsg").textContent = "공부 보너스 +" + STUDY_BONUS + "p 달성해봐요! " + STUDY_IDS.map(function (id) { return nmOf(id) + " " + cnt[id] + "/" + STUDY_TIMES; }).join(" · ");
+      }
+      c.root.classList.toggle("sun", wdNow === 0 && !isOff(k.id, day));
       var ov = state.kids[k.id].off[day];
-      c.root.querySelector(".offmsg").textContent = ov === "공휴일" ? "오늘은 공휴일이에요" : (typeof ov === "string" && ov.length > 3 ? "오늘은 쉬는 날이에요 (" + ov.slice(3) + ")" : "오늘은 쉬는 날이에요");
+      c.root.querySelector(".offmsg").textContent = wdNow === 6 && !ov ? "이번 주 공부 보너스를 달성했어요! 푹 쉬어요 🎉" : ov === "공휴일" ? "오늘은 공휴일이에요" : (typeof ov === "string" && ov.length > 3 ? "오늘은 쉬는 날이에요 (" + ov.slice(3) + ")" : "오늘은 쉬는 날이에요");
       var n = amOnly(done).length;
       var nPm = pmCount(done);
       Array.prototype.forEach.call(c.root.querySelectorAll(".task"), function (b) {
@@ -1195,7 +1223,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function offDialog() {
     day = todayKey();
     var box = openModal("미션 설정");
-    box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. (방학에 시간을 옮기려면 아래 방학 모드를 켜세요.) 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요. 아침에는 학교를 가고 오후에 행사가 있으면 '오후 쉬는 날'을 고르세요. 저녁 미션만 쉬고, 아침 미션을 다 하면 하루 올 클리어로 쳐요. (공휴일 포함 평일에 이틀 이상 쉬면 주간 보너스는 없어요)"));
+    box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. (방학에 시간을 옮기려면 아래 방학 모드를 켜세요.) 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요. (공휴일 포함 평일에 이틀 이상 쉬면 주간 보너스는 없어요)"));
     var pw = state.pw ? field(box, "비밀번호", "password") : null;
     var cur = {};
     KIDS.forEach(function (k) { cur[k.id] = state.kids[k.id].off[day]; });
@@ -1214,9 +1242,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       return i;
     }
     var kidBox = {};
-    KIDS.forEach(function (k) { kidBox[k.id] = mk(k.name + " 쉬는 날", cur[k.id] && cur[k.id] !== "오후" && !allHol && !allEtc); });
-    var allPm = KIDS.every(function (k) { return cur[k.id] === "오후"; });
-    var hol = mk("공휴일", allHol), etc = mk("기타", allEtc), pmo = mk("오후 쉬는 날 (저녁 미션만 쉬어요)", allPm);
+    KIDS.forEach(function (k) { kidBox[k.id] = mk(k.name + " 쉬는 날", cur[k.id] && !allHol && !allEtc); });
+    var hol = mk("공휴일", allHol), etc = mk("기타", allEtc);
     var vc0 = state.cfg && state.cfg.vac || {};
     var vshift = vacShiftOf(BASE_AM);
     var vacBox = mk("방학 모드", !!vc0.on);
@@ -1234,14 +1261,14 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     function showNote() { note.hidden = !etc.checked; }
     var prev = null; // 공휴일·기타를 고르기 전의 어니/혀니 선택을 기억해 둬요
     function sync(changed) {
-      [hol, etc, pmo].forEach(function (x) { if (changed === x && x.checked) [hol, etc, pmo].forEach(function (y) { if (y !== x) y.checked = false; }); });
-      var both = hol.checked || etc.checked, lock = both || pmo.checked;
-      if (lock && !prev) { prev = {}; KIDS.forEach(function (k) { prev[k.id] = kidBox[k.id].checked; }); }
-      if (!lock && prev) { KIDS.forEach(function (k) { kidBox[k.id].checked = prev[k.id]; }); prev = null; }
-      KIDS.forEach(function (k) { if (both) kidBox[k.id].checked = true; else if (pmo.checked) kidBox[k.id].checked = false; kidBox[k.id].disabled = lock; });
+      if (changed === hol && hol.checked) etc.checked = false;
+      if (changed === etc && etc.checked) hol.checked = false;
+      var both = hol.checked || etc.checked;
+      if (both && !prev) { prev = {}; KIDS.forEach(function (k) { prev[k.id] = kidBox[k.id].checked; }); }
+      if (!both && prev) { KIDS.forEach(function (k) { kidBox[k.id].checked = prev[k.id]; }); prev = null; }
+      KIDS.forEach(function (k) { if (both) kidBox[k.id].checked = true; kidBox[k.id].disabled = both; });
     }
     hol.addEventListener("change", function () { sync(hol); showNote(); });
-    pmo.addEventListener("change", function () { sync(pmo); showNote(); });
     etc.addEventListener("change", function () { sync(etc); showNote(); if (etc.checked) note.focus(); });
     sync(null); showNote();
     var msg = el("div", "msg");
@@ -1256,7 +1283,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         var off = state.kids[k.id].off;
         if (hol.checked) off[day] = "공휴일";
         else if (etc.checked) off[day] = note.value.trim() ? "기타:" + note.value.trim() : "기타";
-        else if (pmo.checked) off[day] = "오후";
         else if (kidBox[k.id].checked) off[day] = true;
         else delete off[day];
       });
