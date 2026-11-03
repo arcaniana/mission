@@ -117,6 +117,9 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .offbtn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .offmsg { display: none; background: var(--surface); border: 2px dashed var(--muted); border-radius: 14px; padding: 18px 10px; text-align: center; font-weight: 700; font-size: 15px; line-height: 1.5; }
 .card.off .offmsg { display: block; }
+.card .pmoffmsg { display: none; }
+.card.pmoff .pmoffmsg { display: block; margin-top: 8px; }
+.card.pmoff .pmhead:not(.amhead), .card.pmoff ul.pm { display: none; }
 .card.off ul.am, .card.off .pmhead, .card.off .amhead, .card.off ul.pm, .card.off .cbar, .card.off .cmeta .st { display: none; }
 .mbox .chk { flex-direction: row; align-items: center; gap: 8px; font-size: 14px; padding: 6px 10px; flex: none; border: 2px solid var(--line); border-radius: 12px; }
 .mbox .chk input { width: 20px; height: 20px; }
@@ -375,7 +378,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   var BONUS = 1; // 하루에 모든 항목을 체크하면 받는 보너스
   // 저녁 1~3번(문제·영어·독서)으로 번 돈이 1200p이 될 때마다 300p을 더 줘요. (4일 성공하면 1일 더 성공으로 쳐주는 셈)
   var STUDY_IDS = ["pq", "pe", "pr"];
-  var STUDY_STEP = 120;
+  var STUDY_STEP = 120; // (옛 기준: 이제는 쓰지 않아요)
+  var STUDY_TIMES = 4; // 공부 보너스: 한 주에 공부 항목마다 이만큼 해야 해요
   var STUDY_BONUS = 30;
   var ALL_BONUS = 5; // 아침·저녁 미션을 모두 체크하면 받는 보너스
   var WEEK_BONUS = 10; // 월~금 아침 미션을 모두 성공한 주에 받는 주간 아침 보너스
@@ -414,7 +418,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   var DEF_AM = JSON.parse(JSON.stringify(ITEMS)), DEF_PM = JSON.parse(JSON.stringify(ITEMS_PM));
   DEF_AM.forEach(function (it) { if (it.pay === undefined) it.pay = PAY; delete it.note; });
   DEF_PM.forEach(function (it) { if (STUDY_IDS.indexOf(it.id) > -1) it.study = true; if (it.pay === undefined) it.pay = PAY; delete it.note; });
-  var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS };
+  var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_TIMES: STUDY_TIMES, STUDY_BONUS: STUDY_BONUS };
   var KIDS = [{ id: "eoni", name: "어니" }, { id: "hyeoni", name: "혀니" }];
   var KEY = "morning-checklist-v2";
 
@@ -472,6 +476,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   function canCheck(id, kid) {
     if (kid && pairInfo(kid, id)) return false;
+    if (kid && isPmOff(kid, todayKey()) && ITEMS_PM.some(function (x) { return x.id === id; })) return false;
     if (isRest(todayKey())) return true;
     for (var i = 0; i < ALL.length; i++) {
       var it = ALL[i];
@@ -569,17 +574,26 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     return STUDY_IDS.filter(function (id) { return v.indexOf(id) > -1; }).length;
   }
   function isWeekdayK(k) { var w = dow(k); return w >= 1 && w <= 5 && HOLIDAYS.indexOf(k) === -1; }
-  // 그 주 월~금 공부 점수 (upTo: 앞에서부터 몇 요일까지 셀지)
-  function weekStudyPts(kid, mon, upTo) {
-    var ds = state.kids[kid].days, n = 0;
-    weekdaysOf(mon).slice(0, upTo == null ? 5 : upTo).forEach(function (d) { n += studyDay(ds[d]); });
-    return n;
+  // 그 주 월~일에 공부 항목마다 몇 번 했는지 (upTo: 앞에서부터 몇 요일까지 셀지). 토·일에 한 공부도 그 주에 들어가요.
+  function weekStudyCounts(kid, mon, upTo) {
+    var ds = state.kids[kid].days, r = {};
+    STUDY_IDS.forEach(function (id) { r[id] = 0; });
+    for (var i = 0; i < (upTo == null ? 7 : upTo); i++) {
+      var v = onlyValid(ds[keyOf(dayMs(mon) + i * 86400000)]);
+      STUDY_IDS.forEach(function (id) { if (v.indexOf(id) > -1) r[id]++; });
+    }
+    return r;
   }
+  // 공부 항목마다 STUDY_TIMES번 이상이면 공부 보너스 조건을 채운 거예요.
+  function weekStudyMet(kid, mon, upTo) {
+    var r = weekStudyCounts(kid, mon, upTo);
+    return STUDY_IDS.length > 0 && STUDY_IDS.every(function (id) { return r[id] >= STUDY_TIMES; });
+  }
+  // 토·일 공부까지 셀 수 있으니, 일요일이 끝나야 그 주가 마감돼요.
   function weekClosed(mon) {
-    var fri = weekdaysOf(mon)[4], t = todayKey();
-    return t > fri || (t === fri && nowMinutes() > PM_CLOSE.h * 60 + PM_CLOSE.m);
+    return todayKey() > keyOf(dayMs(mon) + 6 * 86400000);
   }
-  function studyWeekBonus(kid, mon) { return STUDY_IDS.length && weekStudyPts(kid, mon) >= STUDY_STEP ? STUDY_BONUS : 0; }
+  function studyWeekBonus(kid, mon) { return weekStudyMet(kid, mon) ? STUDY_BONUS : 0; }
   // 공부 미션 조건: "ok"(인정) / "pending"(임시로 인정, 금요일에 확정) / "cancelled"(주 공부 점수가 모자라 취소) / "no"
   function studyState(kid, key, arr) {
     if (!STUDY_IDS.length) return "ok";
@@ -587,9 +601,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     if (cnt === STUDY_IDS.length) return "ok";
     if (!isWeekdayK(key)) return "no";
     var mon = mondayOf(key), idx = weekdaysOf(mon).indexOf(key);
-    if (idx === 4 && weekStudyPts(kid, mon, 4) >= STUDY_STEP) return "ok"; // 목요일까지 채웠으면 금요일 공부는 안 해도 돼요
+    if (idx === 4 && weekStudyMet(kid, mon, 4)) return "ok"; // 목요일까지 채웠으면 금요일 공부는 안 해도 돼요
     if (cnt >= Math.min(2, STUDY_IDS.length)) {
-      if (weekStudyPts(kid, mon) >= STUDY_STEP) return "ok";
+      if (weekStudyMet(kid, mon)) return "ok";
       return weekClosed(mon) ? "cancelled" : "pending";
     }
     return "no";
@@ -600,6 +614,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   // 하루 올 클리어(아침 + 저녁) 상태
   function allClearState(kid, key, arr) {
+    if (isPmOff(kid, key)) return amOnly(arr).length === ITEMS.length ? "ok" : "no"; // 저녁 미션을 쉬는 날은 아침만 다 하면 돼요
     if (amOnly(arr).length !== ITEMS.length || !pmOthers(arr)) return "no";
     return studyState(kid, key, arr);
   }
@@ -618,7 +633,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     return state.confirmed;
   }
   // 그날 부모님이 '쉬는 날'로 정한 날 (체험학습·개인 사정 등)
-  function isOff(kid, k) { return !!state.kids[kid].off[k]; }
+  function isOff(kid, k) { var v = state.kids[kid].off[k]; return !!v && v !== "오후"; }
+  // 오후 쉬는 날: 아침 미션은 하고, 저녁 미션만 쉬는 날(행사 등)
+  function isPmOff(kid, k) { return state.kids[kid].off[k] === "오후"; }
   function fullDay(kid, k) { return amOnly(daysOf(kid)[k]).length === ITEMS.length; }
   // 그 주 월~금(쉬는 평일 제외)을 모두 성공했는지
   // 평일에 쉰 날(공휴일 포함)이 2일 이상이면 주간 보너스는 없어요. 월~금 중 4일은 해야 받아요.
@@ -704,12 +721,17 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var amFull = amOnly(arr).length === ITEMS.length, st = allClearState(kid, key, arr);
       if (amFull) bg.appendChild(el("span", "db", "아침 올 클리어 +" + BONUS + "p"));
       if (st === "ok") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p"));
+      if (isPmOff(kid, key)) bg.appendChild(el("span", "db", "저녁 미션 쉬는 날"));
       if (st === "pending") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p (임시)"));
-      if (st === "cancelled") bg.appendChild(el("span", "db dbx", "하루 올 클리어 취소 (주간 공부 " + STUDY_STEP + "p 미달)"));
+      if (st === "cancelled") bg.appendChild(el("span", "db dbx", "하루 올 클리어 취소 (주간 공부 " + STUDY_TIMES + "번씩 미달)"));
       if (bg.childNodes.length) box.appendChild(bg);
       if (isWeekdayK(key) && STUDY_IDS.length) {
-        var mon0 = mondayOf(key), pts = weekStudyPts(kid, mon0), got = pts >= STUDY_STEP;
-        box.appendChild(el("div", "dstudy" + (got ? " ok" : ""), "이번 주 공부 " + pts + " / " + STUDY_STEP + "p" + (got ? " · 공부 보너스 +" + STUDY_BONUS + "p" : "")));
+        var mon0 = mondayOf(key), cnt = weekStudyCounts(kid, mon0), got = weekStudyMet(kid, mon0);
+        var parts = STUDY_IDS.map(function (id) {
+          var nm = ITEMS_PM.filter(function (x) { return x.id === id; })[0];
+          return (nm ? nm.text : id) + " " + cnt[id] + "/" + STUDY_TIMES;
+        });
+        box.appendChild(el("div", "dstudy" + (got ? " ok" : ""), "이번 주 공부 " + parts.join(" · ") + (got ? " · 공부 보너스 +" + STUDY_BONUS + "p" : "")));
       }
     }
     function group(title, list) {
@@ -761,7 +783,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p</span><button type="button" class="settle">정산</button></span></div>' +
       '<div class="cmeta"><span class="tw">오늘 <b class="today">0</b>p</span><span class="st"></span></div>' +
       '<div class="cbar"><i></i></div></div>' +
-      '<div class="wdetail" hidden></div><div class="offmsg">오늘은 쉬는 날이에요</div><div class="pmhead amhead"></div><ul class="am"></ul><div class="pmhead"></div><ul class="pm"></ul><button type="button" class="confirm" aria-pressed="false">부모님 확인 받기</button>';
+      '<div class="wdetail" hidden></div><div class="offmsg">오늘은 쉬는 날이에요</div><div class="pmhead amhead"></div><ul class="am"></ul><div class="pmhead"></div><div class="offmsg pmoffmsg">오늘은 저녁 미션을 쉬어요</div><ul class="pm"></ul><button type="button" class="confirm" aria-pressed="false">부모님 확인 받기</button>';
     sec.querySelector(".cname").textContent = k.name;
     sec.querySelector(".wdetail").addEventListener("click", function () { sel.key = ""; render(); });
     sec.querySelector(".settle").addEventListener("click", function () { settleDialog(k); });
@@ -983,8 +1005,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     line("하루 올 클리어", "+" + ALL_BONUS + "p", "· 아침·저녁 미션을 모두 하면");
     var studyNames = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
     if (studyNames.length) {
-      line("공부 보너스", "+" + STUDY_BONUS + "p", "· 한 주(월~금) " + studyNames.join("·") + " 점수가 " + STUDY_STEP.toLocaleString("ko-KR") + "p 이상이면");
-      var ex = el("div", "dir", "평일에는 공부 미션이 2개 이상이면 일단 하루 올 클리어로 쳐요. 금요일까지 " + STUDY_STEP.toLocaleString("ko-KR") + "p가 안 되면 그 올 클리어는 취소돼요. 목요일까지 " + STUDY_STEP.toLocaleString("ko-KR") + "p를 채우면 금요일 공부는 안 해도 올 클리어예요.");
+      line("공부 보너스", "+" + STUDY_BONUS + "p", "· 한 주(월~일, 토·일 공부 포함) " + studyNames.join("·") + " 항목마다 " + STUDY_TIMES + "번 이상 하면");
+      var ex = el("div", "dir", "평일에는 공부 미션이 2개 이상이면 일단 하루 올 클리어로 쳐요. 일요일까지 공부 항목마다 " + STUDY_TIMES + "번이 안 되면 그 올 클리어는 취소돼요. (토·일에 공부해서 채워도 돼요.) 목요일까지 항목마다 " + STUDY_TIMES + "번을 채우면 금요일 공부는 안 해도 올 클리어예요.");
       info.appendChild(ex);
     }
     line("주간 아침 보너스", "+" + WEEK_BONUS + "p", "· 월~금 아침 미션을 모두 하면");
@@ -1005,6 +1027,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var c = cards[k.id];
       var done = onlyValid(daysOf(k.id)[day]);
       c.root.classList.toggle("off", isOff(k.id, day));
+      c.root.classList.toggle("pmoff", isPmOff(k.id, day));
       var ov = state.kids[k.id].off[day];
       c.root.querySelector(".offmsg").textContent = ov === "공휴일" ? "오늘은 공휴일이에요" : (typeof ov === "string" && ov.length > 3 ? "오늘은 쉬는 날이에요 (" + ov.slice(3) + ")" : "오늘은 쉬는 날이에요");
       var n = amOnly(done).length;
@@ -1172,7 +1195,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function offDialog() {
     day = todayKey();
     var box = openModal("미션 설정");
-    box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. (방학에 시간을 옮기려면 아래 방학 모드를 켜세요.) 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요. (공휴일 포함 평일에 이틀 이상 쉬면 주간 보너스는 없어요)"));
+    box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. (방학에 시간을 옮기려면 아래 방학 모드를 켜세요.) 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요. 아침에는 학교를 가고 오후에 행사가 있으면 '오후 쉬는 날'을 고르세요. 저녁 미션만 쉬고, 아침 미션을 다 하면 하루 올 클리어로 쳐요. (공휴일 포함 평일에 이틀 이상 쉬면 주간 보너스는 없어요)"));
     var pw = state.pw ? field(box, "비밀번호", "password") : null;
     var cur = {};
     KIDS.forEach(function (k) { cur[k.id] = state.kids[k.id].off[day]; });
@@ -1191,8 +1214,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       return i;
     }
     var kidBox = {};
-    KIDS.forEach(function (k) { kidBox[k.id] = mk(k.name + " 쉬는 날", cur[k.id] && !allHol && !allEtc); });
-    var hol = mk("공휴일", allHol), etc = mk("기타", allEtc);
+    KIDS.forEach(function (k) { kidBox[k.id] = mk(k.name + " 쉬는 날", cur[k.id] && cur[k.id] !== "오후" && !allHol && !allEtc); });
+    var allPm = KIDS.every(function (k) { return cur[k.id] === "오후"; });
+    var hol = mk("공휴일", allHol), etc = mk("기타", allEtc), pmo = mk("오후 쉬는 날 (저녁 미션만 쉬어요)", allPm);
     var vc0 = state.cfg && state.cfg.vac || {};
     var vshift = vacShiftOf(BASE_AM);
     var vacBox = mk("방학 모드", !!vc0.on);
@@ -1210,14 +1234,14 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     function showNote() { note.hidden = !etc.checked; }
     var prev = null; // 공휴일·기타를 고르기 전의 어니/혀니 선택을 기억해 둬요
     function sync(changed) {
-      if (changed === hol && hol.checked) etc.checked = false;
-      if (changed === etc && etc.checked) hol.checked = false;
-      var both = hol.checked || etc.checked;
-      if (both && !prev) { prev = {}; KIDS.forEach(function (k) { prev[k.id] = kidBox[k.id].checked; }); }
-      if (!both && prev) { KIDS.forEach(function (k) { kidBox[k.id].checked = prev[k.id]; }); prev = null; }
-      KIDS.forEach(function (k) { if (both) kidBox[k.id].checked = true; kidBox[k.id].disabled = both; });
+      [hol, etc, pmo].forEach(function (x) { if (changed === x && x.checked) [hol, etc, pmo].forEach(function (y) { if (y !== x) y.checked = false; }); });
+      var both = hol.checked || etc.checked, lock = both || pmo.checked;
+      if (lock && !prev) { prev = {}; KIDS.forEach(function (k) { prev[k.id] = kidBox[k.id].checked; }); }
+      if (!lock && prev) { KIDS.forEach(function (k) { kidBox[k.id].checked = prev[k.id]; }); prev = null; }
+      KIDS.forEach(function (k) { if (both) kidBox[k.id].checked = true; else if (pmo.checked) kidBox[k.id].checked = false; kidBox[k.id].disabled = lock; });
     }
     hol.addEventListener("change", function () { sync(hol); showNote(); });
+    pmo.addEventListener("change", function () { sync(pmo); showNote(); });
     etc.addEventListener("change", function () { sync(etc); showNote(); if (etc.checked) note.focus(); });
     sync(null); showNote();
     var msg = el("div", "msg");
@@ -1232,6 +1256,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         var off = state.kids[k.id].off;
         if (hol.checked) off[day] = "공휴일";
         else if (etc.checked) off[day] = note.value.trim() ? "기타:" + note.value.trim() : "기타";
+        else if (pmo.checked) off[day] = "오후";
         else if (kidBox[k.id].checked) off[day] = true;
         else delete off[day];
       });
@@ -1514,7 +1539,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     ALL_BONUS = numOr(c.ALL_BONUS, DEFC.ALL_BONUS);
     WEEK_BONUS = numOr(c.WEEK_BONUS, DEFC.WEEK_BONUS);
     WEEK_ALL_BONUS = numOr(c.WEEK_ALL_BONUS, DEFC.WEEK_ALL_BONUS);
-    STUDY_STEP = numOr(c.STUDY_STEP, DEFC.STUDY_STEP) || DEFC.STUDY_STEP;
+    STUDY_STEP = numOr(c.STUDY_STEP, 120) || 120;
+    STUDY_TIMES = numOr(c.STUDY_TIMES, DEFC.STUDY_TIMES) || DEFC.STUDY_TIMES;
     STUDY_BONUS = numOr(c.STUDY_BONUS, DEFC.STUDY_BONUS);
     recompute();
   }
@@ -1528,7 +1554,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var model = { am: cloneList(BASE_AM), pm: cloneList(BASE_PM) };
         var tab = "am", top = "mission";
     var bm = {};
-    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "WEEK_ALL_BONUS", "STUDY_STEP", "STUDY_BONUS"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_STEP: STUDY_STEP, STUDY_BONUS: STUDY_BONUS }[k]); });
+    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "WEEK_ALL_BONUS", "STUDY_TIMES", "STUDY_BONUS"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_TIMES: STUDY_TIMES, STUDY_BONUS: STUDY_BONUS }[k]); });
     var ttabs = el("div", "itabs"), ttabBtn = {};
     [["mission", "미션"], ["bonus", "보너스"]].forEach(function (t) {
       var b = el("button", "", t[1]);
@@ -1574,7 +1600,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       return b;
     }
     function drawBonus() {
-      [["BONUS", "아침 올 클리어"], ["ALL_BONUS", "하루 올 클리어"], ["WEEK_BONUS", "주간 아침 보너스 (월~금 아침)"], ["WEEK_ALL_BONUS", "주간 올 클리어 (월~금 하루 올 클리어)"], ["STUDY_STEP", "공부 보너스 기준 (한 주 점수)"], ["STUDY_BONUS", "공부 보너스 (기준 달성 시)"]].forEach(function (row) {
+      [["BONUS", "아침 올 클리어"], ["ALL_BONUS", "하루 올 클리어"], ["WEEK_BONUS", "주간 아침 보너스 (월~금 아침)"], ["WEEK_ALL_BONUS", "주간 올 클리어 (월~금 하루 올 클리어)"], ["STUDY_TIMES", "공부 보너스 기준 (공부 항목마다 한 주 횟수)"], ["STUDY_BONUS", "공부 보너스 (기준 달성 시)"]].forEach(function (row) {
         var l = el("label", "chk");
         l.appendChild(el("span", "", row[1]));
         var i = el("input", "numin");
@@ -1662,7 +1688,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         var raw = String(bm[k]).trim(), n = Math.round(Number(raw));
         if (raw === "" || !isFinite(n) || n < 0 || n > 99999) { top = "bonus"; draw(); return "보너스는 0 이상의 숫자예요"; }
       }
-      if (Math.round(Number(bm.STUDY_STEP)) < 1) { top = "bonus"; draw(); return "공부 점수 기준은 1 이상이어야 해요"; }
+      if (Math.round(Number(bm.STUDY_TIMES)) < 1) { top = "bonus"; draw(); return "공부 횟수 기준은 1 이상이어야 해요"; }
       return "";
     }
     var acts = el("div", "acts");
