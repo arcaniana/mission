@@ -1045,7 +1045,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         li.hidden = (satStudy && !isStudy) || (sunMet && isStudy);
       });
       Array.prototype.forEach.call(c.root.querySelectorAll("ul.pm .grp"), function (g) {
-        g.hidden = satStudy && !g.querySelector("ul.gi > li:not([hidden])");
+        g.hidden = (satStudy || sunMet) && !g.querySelector("ul.gi > li:not([hidden])");
       });
       if (sunOn) {
         var cnt2 = weekStudyCounts(k.id, monNow), nmOf2 = function (id) { var t = ITEMS_PM.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
