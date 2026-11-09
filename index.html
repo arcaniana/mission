@@ -15,6 +15,9 @@
 
 
 
+
+
+
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
@@ -189,7 +192,8 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .cright { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .cname, .ctotal { position: relative; top: 0.12em; } /* Jua 글꼴은 글자가 위쪽에 치우쳐 보여서 살짝 내려요 */
 .ctotal { text-align: right; }
-.ctotal .tu { display: block; white-space: nowrap; opacity: 0.5; font-size: 12px; line-height: 1; margin-top: -2px; font-family: var(--font-body); font-weight: 700; }
+.ctotal .tu[hidden] { display: none; }
+.ctotal .tu { display: block; white-space: nowrap; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; margin-left: auto; opacity: 0.5; font-size: 12px; line-height: 1; margin-top: -2px; font-family: var(--font-body); font-weight: 700; }
 .card.unc .tw { opacity: 0.55; }
 .wd.unc { opacity: 0.55; }
 .ctotal { font-family: var(--font-display); font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
@@ -855,7 +859,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var b = document.createElement("span");
     var aj = state.kids[kid].adj[key] || 0;
     b.textContent = isOff(kid, key) ? (state.kids[kid].off[key] === "공휴일" ? "공휴일" : "쉬는 날") + (aj ? " (부모님 " + signed(aj) + ")" : "") : key > today ? "아직이에요" : (dayCoins(kid, key) + aj).toLocaleString("ko-KR") + "p" + (aj ? " (부모님 " + signed(aj) + ")" : "");
-    if (key <= today && arr.length && !isConf(kid, key) && !isOff(kid, key)) b.textContent += " · 확인 전";
+    if (key <= today && !isConf(kid, key) && !isOff(kid, key)) b.textContent += " · 확인 전";
     h.appendChild(a); h.appendChild(b);
     box.appendChild(h);
     if (key <= today && !isOff(kid, key)) {
@@ -910,7 +914,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     }
     group("아침 미션", ITEMS);
     group("저녁 미션", ITEMS_PM);
-    if (key <= today && arr.length && !isConf(kid, key)) {
+    if (key <= today && !isConf(kid, key)) { // 아이가 하나도 체크하지 않은 날도 부모님이 확인할 수 있어요
       var cb = el("button", "go", "이 날 부모님 확인하기");
       cb.type = "button";
       cb.style.cssText = "margin-top:6px;width:100%";
@@ -935,7 +939,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     sec.className = "card";
     sec.setAttribute("aria-label", k.name + " 체크리스트");
     sec.innerHTML =
-      '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p<span class="tu" hidden></span></span><button type="button" class="settle">정산</button></span></div>' +
+      '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p<button type="button" class="tu" hidden></button></span><button type="button" class="settle">정산</button></span></div>' +
       '<button type="button" class="cpend" hidden></button>' +
       '<div class="cmeta"><span class="tw">오늘 <b class="today">0</b>p</span><span class="st"></span></div>' +
       '<div class="cbar"><i></i></div></div>' +
@@ -944,6 +948,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     sec.querySelector(".wdetail").addEventListener("click", function () { sel.key = ""; render(); });
     sec.querySelector(".settle").addEventListener("click", function () { settleDialog(k); });
     sec.querySelector(".cpend").addEventListener("click", function () { pendingDialog(k); });
+    sec.querySelector(".tu").addEventListener("click", function () { pendingDialog(k); });
     var ul = sec.querySelector("ul.am");
     function addItems(ul, list) {
       var no = 0;
@@ -1310,9 +1315,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var cfN = confirmedCoins(k.id), tot = totalCoins(k.id), ucs = unconfirmedDays(k.id);
       // 확정된 점수는 또렷하게, 부모님 확인 전 점수는 흐리게 따로 보여줘요.
       c.tv.textContent = cfN.toLocaleString("ko-KR");
-      c.tu.hidden = tot === cfN;
-      c.tu.textContent = tot === cfN ? "" : signed(tot - cfN);
-      c.tu.title = "부모님 확인 전 점수";
+      c.tu.hidden = tot === cfN && !ucs.length;
+      c.tu.textContent = tot !== cfN ? (tot - cfN > 0 ? "+" : "−") + Math.abs(tot - cfN) + "(예정)" : "대기 " + ucs.length + "일";
+      c.tu.title = "부모님 확인 전 점수 · 누르면 확인 안 한 날 목록이 열려요";
       c.root.classList.toggle("unc", day > state.cf && !isConf(k.id, day) && onlyValid(daysOf(k.id)[day]).length > 0);
       c.pendOn = !!(tot !== cfN || ucs.length);
       c.pend.hidden = false;
@@ -1330,7 +1335,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var anyPend = KIDS.some(function (k) { return cards[k.id].pendOn; });
     KIDS.forEach(function (k) {
       var pc = cards[k.id];
-      pc.pend.hidden = !anyPend;
+      pc.pend.hidden = true; // 설명 줄은 따로 보여주지 않아요. (흐린 예정 점수를 누르면 목록이 열려요)
       pc.pend.style.visibility = pc.pendOn ? "" : "hidden"; // 두 카드의 높이가 같도록 자리를 남겨요
     });
     var viewDay = sel.key || day;
@@ -2054,7 +2059,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
           var label = d + "일";
           KIDS.forEach(function (k) {
             var kd = state.kids[k.id];
-            var has = (kd.days[key] && onlyValid(kd.days[key]).length) || (kd.hist && kd.hist[key]);
+            var has = (kd.days[key] && onlyValid(kd.days[key]).length) || (kd.hist && kd.hist[key]) || kd.conf[key] || (key >= state.cf && key <= tk && !isOff(k.id, key) && !isConf(k.id, key)); // 체크가 없어도 확인 전인 날은 빈 동그라미로 보여요
             if (!has || key > tk) { var sp = el("span", ""); sp.style.cssText = "width:9px;height:9px"; dots.appendChild(sp); return; }
             var ok = isConf(k.id, key);
             var dot = el("span", "");
