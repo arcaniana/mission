@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#2f62e0">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
+
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
@@ -1347,6 +1348,43 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     return a.toString(36) + "-" + b.toString(36);
   }
   function pwOk(t) { return !state.pw || hashPw(t || "") === state.pw; }
+  // '저장하기' 같은 버튼을 누른 뒤에 비밀번호를 물어봐요. 맞으면 하던 일을 이어서 해요.
+  var pwPass = false;
+  function gatePw(retry) {
+    if (!state.pw || pwPass) { pwPass = false; return true; }
+    var ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);padding:16px";
+    var card = document.createElement("div");
+    card.style.cssText = "background:var(--surface);color:var(--ink);border:2px solid var(--ink);border-radius:16px;padding:16px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box";
+    var t = document.createElement("div");
+    t.textContent = "비밀번호를 입력해 주세요";
+    t.style.cssText = "font-family:var(--font-display);font-size:20px";
+    var inp = document.createElement("input");
+    inp.type = "password"; inp.autocomplete = "off"; inp.setAttribute("aria-label", "비밀번호");
+    inp.style.cssText = "font:inherit;font-size:18px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);width:100%;box-sizing:border-box";
+    var er = document.createElement("div");
+    er.style.cssText = "color:#c0392b;font-weight:700;min-height:1.2em;font-size:13px";
+    er.setAttribute("role", "alert");
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px";
+    var okb = document.createElement("button"), nob = document.createElement("button");
+    okb.type = nob.type = "button";
+    okb.textContent = "확인"; nob.textContent = "취소";
+    [okb, nob].forEach(function (b) { b.style.cssText = "flex:1;font:inherit;font-weight:700;font-size:16px;min-height:44px;border-radius:999px;border:2px solid var(--ink);cursor:pointer;background:" + (b === okb ? "var(--ink);color:var(--bg)" : "transparent;color:var(--ink)"); });
+    function done() {
+      if (!pwOk(inp.value)) { er.textContent = "비밀번호가 맞지 않아요"; inp.select(); return; }
+      ov.remove(); pwPass = true; retry();
+    }
+    okb.addEventListener("click", done);
+    nob.addEventListener("click", function () { ov.remove(); });
+    inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); done(); } });
+    row.appendChild(okb); row.appendChild(nob);
+    card.appendChild(t); card.appendChild(inp); card.appendChild(er); card.appendChild(row);
+    ov.appendChild(card);
+    document.body.appendChild(ov);
+    try { inp.focus(); } catch (e) {}
+    return false;
+  }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function closeModal() { var m = $("modal"); m.hidden = true; m.textContent = ""; }
   function openModal(title) {
@@ -1409,7 +1447,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var kd = state.kids[k.id], was = !!kd.conf[dk];
     var v = kd.adj[dk] || 0;
     var box = openModal(k.name + " 부모님 확인" + (forDay && forDay !== todayKey() ? " · " + dateText(dk) + " " + DOW_KO[dow(dk)] : ""));
-    var pw = null; // 비밀번호 칸은 확인하기 버튼 바로 위에 만들어요
+    var pw = null; // 비밀번호는 버튼을 누른 뒤에 물어봐요
     // 0포인트로 '확인'만 누를 때는 비밀번호가 필요 없어요. 포인트를 주거나 바꾸거나 빼는 경우에만 물어요.
     var origAdj = kd.adj[dk] || 0;
     function needPw() { return v !== 0 || origAdj !== 0; }
@@ -1460,7 +1498,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     });
     dn.addEventListener("blur", function () { show(); });
     show();
-    if (state.pw) pw = field(box, "비밀번호 (포인트를 줄 때만 넣어요)", "password");
     var msg = el("div", "msg");
     msg.setAttribute("role", "alert");
     box.appendChild(msg);
@@ -1468,7 +1505,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var go = el("button", "go", was ? "수정하기" : "확인하기");
     go.type = "button";
     go.addEventListener("click", function () {
-      if (needPw() && !pwOk(pw && pw.value)) { msg.textContent = pw && pw.value ? "비밀번호가 맞지 않아요" : "포인트를 줄 때는 비밀번호가 필요해요"; return; }
+      if (needPw() && !gatePw(function () { go.click(); })) return;
       kd.conf[dk] = true;
       if (v) kd.adj[dk] = v; else delete kd.adj[dk];
       if (!kd.note) kd.note = {};
@@ -1480,7 +1517,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var undo = el("button", "", "확인 취소");
       undo.type = "button";
       undo.addEventListener("click", function () {
-        if (origAdj !== 0 && !pwOk(pw && pw.value)) { msg.textContent = pw && pw.value ? "비밀번호가 맞지 않아요" : "준 포인트가 있어서 비밀번호가 필요해요"; return; }
+        if (origAdj !== 0 && !gatePw(function () { undo.click(); })) return;
         delete kd.conf[dk]; delete kd.adj[dk]; if (kd.note) delete kd.note[dk];
         save(); closeModal(); render();
       });
@@ -1500,7 +1537,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     day = todayKey();
     var box = openModal("미션 설정");
     box.appendChild(el("div", "", "오늘 쉬는 경우를 골라 주세요. (방학에 시간을 옮기려면 아래 방학 모드를 켜세요.) 체크리스트가 사라지고 월~금 주간 보너스 조건에서도 빠져요. (공휴일 포함 평일에 이틀 이상 쉬면 주간 보너스는 없어요)"));
-    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var pw = null;
     var cur = {};
     KIDS.forEach(function (k) { cur[k.id] = state.kids[k.id].off[day]; });
     var allHol = KIDS.every(function (k) { return cur[k.id] === "공휴일"; });
@@ -1554,7 +1591,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var go = el("button", "go", "저장하기");
     go.type = "button";
     go.addEventListener("click", function () {
-      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      if (!gatePw(function () { go.click(); })) return;
       KIDS.forEach(function (k) {
         var off = state.kids[k.id].off;
         if (hol.checked) off[day] = "공휴일";
@@ -1689,7 +1726,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function syncDialog() {
     var box = openModal("구글 시트 연동");
     box.appendChild(el("div", "", syncUrl ? "시트와 연결돼 있어요. 같은 주소를 넣은 다른 폰과 기록이 함께 보여요." : "시트에 만든 웹 앱 주소를 붙여넣으면 이 폰의 기록이 시트에 저장되고, 같은 주소를 넣은 폰끼리 함께 보여요."));
-    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var pw = null;
     var u = field(box, "웹 앱 주소 (https://script.google.com/…/exec)", "text");
     u.value = syncUrl;
     var msg = el("div", "msg");
@@ -1699,9 +1736,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var go = el("button", "go", syncUrl ? "다시 연결" : "연결하기");
     go.type = "button";
     go.addEventListener("click", function () {
-      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
       var url = u.value.trim();
       if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(url)) { msg.textContent = "script.google.com …/exec 로 끝나는 주소를 넣어 주세요"; return; }
+      if (!gatePw(function () { go.click(); })) return;
       msg.textContent = "연결 중…";
       fetchJson(url, { cache: "no-store" }).then(function (r) {
         if (!r || !r.ok) throw new Error("bad");
@@ -1719,7 +1756,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var cut = el("button", "", "연동 끊기");
       cut.type = "button";
       cut.addEventListener("click", function () {
-        if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+        if (!gatePw(function () { cut.click(); })) return;
         try { localStorage.removeItem(SYNC_KEY); } catch (e) {}
         syncUrl = ""; syncState = ""; dirty = false; setSyncText(); closeModal();
       });
@@ -1760,7 +1797,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       return;
     }
     var max = Math.floor(total / SETTLE_STEP) * SETTLE_STEP, v = max;
-    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var pw = null;
     box.appendChild(el("div", "", "얼마를 정산할까요?"));
     var step = el("div", "step");
     var minus = el("button", "", "−" + SETTLE_STEP), plus = el("button", "", "+" + SETTLE_STEP), val = el("div", "val");
@@ -1796,8 +1833,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var go = el("button", "go", "정산하기");
     go.type = "button";
     go.addEventListener("click", function () {
-      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
       if (v > confirmedCoins(k.id)) { msg.textContent = "포인트가 달라졌어요. 창을 닫고 다시 열어 주세요."; return; }
+      if (!gatePw(function () { go.click(); })) return;
       var kd = state.kids[k.id];
       kd.carry = (kd.carry || 0) - v;
       if (!kd.log) kd.log = [];
@@ -1893,7 +1930,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     box.classList.add("wide");
     var help = el("div", "");
     box.appendChild(help);
-    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var pw = null;
     var ti = field(box, "앱 제목 (비워 두면 기본 제목)", "text");
     ti.maxLength = 24; ti.placeholder = "매일 미션";
     ti.value = state.cfg && typeof state.cfg.title === "string" ? state.cfg.title : "";
@@ -2079,9 +2116,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var go = el("button", "go", "저장하기");
     go.type = "button";
     go.addEventListener("click", function () {
-      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
       var err = check();
       if (err) { msg.textContent = err; return; }
+      if (!gatePw(function () { go.click(); })) return;
       var c = state.cfg || {};
       delete c.pay;
       c.items = { am: cloneList(model.am), pm: cloneList(model.pm) };
