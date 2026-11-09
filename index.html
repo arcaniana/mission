@@ -191,6 +191,9 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .srow .sy { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .bump { animation: bump 0.35s ease-out; display: inline-block; }
 @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.cpend { font: inherit; font-size: 12px; min-height: 48px; box-sizing: border-box; font-weight: 700; color: var(--ink); background: var(--surface); border: 2px dashed var(--coin); border-radius: 12px; padding: 5px 10px; text-align: left; cursor: pointer; line-height: 1.4; }
+.cpend[hidden] { display: none !important; }
+.cpend b { color: var(--hl); }
 .cmeta { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .cmeta { align-items: center; flex-wrap: wrap; }
 .cmeta b { color: var(--ink); }
@@ -551,8 +554,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var s = { kids: {} };
     s.cfg = (p && p.cfg) || {};
     s.names = (p && p.names) || {};
+    s.cf = (p && typeof p.cf === "string" && p.cf) || todayKey(); // 이 날짜부터는 부모님 확인을 받아야 점수가 확정돼요
     if (p && p.kids) { s.kids = p.kids; s.confirmed = p.confirmed || {}; s.pw = p.pw || ""; s.ts = p.ts || 0; }
-    KIDS.forEach(function (k) { if (!s.kids[k.id] || !s.kids[k.id].days) s.kids[k.id] = { days: {} }; if (!s.kids[k.id].adj) s.kids[k.id].adj = {}; if (!s.kids[k.id].conf) s.kids[k.id].conf = {}; if (!s.kids[k.id].off) s.kids[k.id].off = {}; });
+    KIDS.forEach(function (k) { if (!s.kids[k.id] || !s.kids[k.id].days) s.kids[k.id] = { days: {} }; if (!s.kids[k.id].adj) s.kids[k.id].adj = {}; if (!s.kids[k.id].conf) s.kids[k.id].conf = {}; if (!s.kids[k.id].off) s.kids[k.id].off = {}; if (!s.kids[k.id].note) s.kids[k.id].note = {}; });
     if (p && p.kids && !(p.ver >= 2)) { migrate(s); justMigrated = true; }
     if (p && p.kids && !(p.ver >= 3)) { migrate3(s); justMigrated = true; }
     s.ver = 3;
@@ -697,6 +701,42 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     return n;
   }
 
+  // ---- 부모님 확인과 확정 점수 ----
+  // 점수는 체크하면 바로 올라가지만(임시), 부모님이 그날을 확인해야 확정돼요. 확인하지 않아도 일주일이 지나면 자동으로 확정돼요.
+  function addDaysK(k, n) { return keyOf(dayMs(k) + n * 86400000); }
+  function isConf(kid, d) {
+    if (d < state.cf) return true;
+    var kd = state.kids[kid];
+    if (kd.conf[d]) return true;
+    if (kd.hist && kd.hist[d]) return true;
+    return addDaysK(d, 7) <= todayKey();
+  }
+  // 그 주의 보너스(주간·공부)는 주가 끝나고, 체크한 모든 날이 확인된 뒤에 확정돼요.
+  function weekConf(kid, mon) {
+    if (todayKey() <= addDaysK(mon, 6)) return false;
+    var ds = state.kids[kid].days;
+    for (var i = 0; i < 7; i++) {
+      var d = addDaysK(mon, i);
+      if (ds[d] && ds[d].length && !isConf(kid, d)) return false;
+    }
+    return true;
+  }
+  function confirmedCoins(kid) {
+    var kd = state.kids[kid], n = kd.carry || 0, weeks = {};
+    Object.keys(kd.adj).forEach(function (d) { n += kd.adj[d] || 0; });
+    Object.keys(kd.days).forEach(function (d) {
+      if (isConf(kid, d)) n += dayCoins(kid, d);
+      var mon = mondayOf(d);
+      if (!weeks[mon]) { weeks[mon] = true; if (weekConf(kid, mon)) n += weekExtra(kid, mon); }
+    });
+    return n;
+  }
+  // 확인이 아직 안 된 날(체크한 것이 있는 날)들
+  function unconfirmedDays(kid) {
+    var t = todayKey(), ds = state.kids[kid].days;
+    return Object.keys(ds).filter(function (d) { return d <= t && ds[d] && ds[d].length && !isConf(kid, d); }).sort();
+  }
+
   // 지난주(와 그 전) 기록은 합계 금액으로만 합쳐 두고 요일별 기록은 비워요. (이번 주 기록만 요일별로 보여줘요)
   function rollover() {
     var cur = mondayOf(todayKey());
@@ -715,6 +755,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
           var ids = onlyValid(ds[d]);
           kd.hist[d] = { i: ids, c: dc + (kd.adj[d] || 0) };
           if (kd.off[d]) kd.hist[d].o = kd.off[d];
+          if (kd.note && kd.note[d]) kd.hist[d].n = kd.note[d];
           ids.forEach(function (id) { for (var q = 0; q < ALL.length; q++) if (ALL[q].id === id) state.names[id] = ALL[q].text; });
         });
         keys.forEach(function (d) { delete ds[d]; });
@@ -724,11 +765,12 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     });
     KIDS.forEach(function (k) {
       var kd = state.kids[k.id];
-      Object.keys(kd.adj).concat(Object.keys(kd.conf), Object.keys(kd.off)).forEach(function (d) {
+      Object.keys(kd.adj).concat(Object.keys(kd.conf), Object.keys(kd.off), Object.keys(kd.note || {})).forEach(function (d) {
         if (mondayOf(d) < limit) {
           if (!kd.hist) kd.hist = {};
           if (!kd.hist[d] && (kd.off[d] || kd.adj[d])) { kd.hist[d] = { i: [], c: kd.adj[d] || 0 }; if (kd.off[d]) kd.hist[d].o = kd.off[d]; }
           if (kd.adj[d]) { kd.carry = (kd.carry || 0) + kd.adj[d]; }
+          if (kd.note && kd.note[d]) { if (kd.hist[d]) kd.hist[d].n = kd.note[d]; else kd.hist[d] = { i: [], c: kd.adj[d] || 0, n: kd.note[d] }; delete kd.note[d]; }
           delete kd.adj[d]; delete kd.conf[d]; delete kd.off[d]; changed = true;
         }
       });
@@ -776,6 +818,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         });
         box.appendChild(og); box.appendChild(ol);
       } else if (!hh) box.appendChild(el("div", "dg", "이 날짜는 남아 있는 기록이 없어요."));
+      if (hh && hh.n) box.appendChild(el("div", "dg", "추가 포인트 항목: " + hh.n));
       return;
     }
     var h = document.createElement("div");
@@ -785,10 +828,13 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var b = document.createElement("span");
     var aj = state.kids[kid].adj[key] || 0;
     b.textContent = isOff(kid, key) ? (state.kids[kid].off[key] === "공휴일" ? "공휴일" : "쉬는 날") + (aj ? " (부모님 " + signed(aj) + ")" : "") : key > today ? "아직이에요" : (dayCoins(kid, key) + aj).toLocaleString("ko-KR") + "p" + (aj ? " (부모님 " + signed(aj) + ")" : "");
+    if (key <= today && arr.length && !isConf(kid, key) && !isOff(kid, key)) b.textContent += " · 확인 전";
     h.appendChild(a); h.appendChild(b);
     box.appendChild(h);
     if (key <= today && !isOff(kid, key)) {
       var bg = el("div", "dbg");
+      var nt = state.kids[kid].note && state.kids[kid].note[key], ajv = state.kids[kid].adj[key] || 0;
+      if (ajv) bg.appendChild(el("span", "db", (nt ? nt + " " : "추가 포인트 ") + signed(ajv)));
       var amFull = amDoneAll(arr), st = allClearState(kid, key, arr);
       if (amFull) bg.appendChild(el("span", "db", "아침 올 클리어 +" + BONUS + "p"));
       if (st === "ok") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p"));
@@ -837,6 +883,16 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     }
     group("아침 미션", ITEMS);
     group("저녁 미션", ITEMS_PM);
+    if (key <= today && arr.length && !isConf(kid, key)) {
+      var cb = el("button", "go", "이 날 부모님 확인하기");
+      cb.type = "button";
+      cb.style.cssText = "margin-top:6px;width:100%";
+      cb.addEventListener("click", function (e) {
+        e.stopPropagation();
+        parentDialog(KIDS.filter(function (x) { return x.id === kid; })[0], key);
+      });
+      box.appendChild(cb);
+    }
   }
 
   var $ = function (id) { return document.getElementById(id); };
@@ -852,12 +908,14 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     sec.setAttribute("aria-label", k.name + " 체크리스트");
     sec.innerHTML =
       '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p</span><button type="button" class="settle">정산</button></span></div>' +
+      '<button type="button" class="cpend" hidden></button>' +
       '<div class="cmeta"><span class="tw">오늘 <b class="today">0</b>p</span><span class="st"></span></div>' +
       '<div class="cbar"><i></i></div></div>' +
       '<div class="wdetail" hidden></div><div class="offmsg">오늘은 쉬는 날이에요</div><div class="satmsg"></div><div class="pmhead amhead"></div><ul class="am"></ul><div class="pmhead"></div><ul class="pm"></ul><button type="button" class="confirm" aria-pressed="false">부모님 확인 받기</button>';
     sec.querySelector(".cname").textContent = k.name;
     sec.querySelector(".wdetail").addEventListener("click", function () { sel.key = ""; render(); });
     sec.querySelector(".settle").addEventListener("click", function () { settleDialog(k); });
+    sec.querySelector(".cpend").addEventListener("click", function () { pendingDialog(k); });
     var ul = sec.querySelector("ul.am");
     function addItems(ul, list) {
       var no = 0;
@@ -947,6 +1005,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       pmhead: sec.querySelector(".pmhead:not(.amhead)"),
       amhead: sec.querySelector(".amhead"),
       confirm: sec.querySelector(".confirm"),
+      pend: sec.querySelector(".cpend"),
       rebuild: build
     };
   });
@@ -1085,7 +1144,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     L.push("주간 아침 보너스 +" + v("주간아침", "WEEK_BONUS") + "p · 월~금 아침 미션을 모두 하면");
     L.push("주간 올 클리어 +" + v("주간올클리어", "WEEK_ALL_BONUS") + "p · 월~금 하루 올 클리어를 모두 하면");
     L.push("주간 보너스는 월~금 중 4일 이상 해야 받아요. (공휴일·쉬는 날 포함 하루까지만 쉴 수 있어요)");
-    L.push("정산 1p = " + v("원", "WON") + "원 · 정산할 때 원으로 바꿔요");
+    L.push("점수는 체크하면 바로 올라가고, 부모님이 그날을 확인하면 확정돼요. 확인하지 않아도 일주일이 지나면 자동으로 확정돼요. 주간·공부 보너스는 그 주가 끝나고 모든 날이 확인된 뒤에 확정돼요.");
+    L.push("정산 1p = " + v("원", "WON") + "원 · 정산할 때 원으로 바꿔요 (확정된 포인트만 정산해요)");
     return L;
   }
   function renderRules() {
@@ -1141,7 +1201,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     line("주간 올 클리어", "+" + WEEK_ALL_BONUS + "p", "· 월~금 하루 올 클리어를 모두 하면");
     info.appendChild(el("div", "dir", "토요일에는 주중에 공부 보너스를 달성했으면 푹 쉬고, 못 했으면 공부 미션만 열려서 채울 수 있어요. 일요일은 저녁 미션만 열리고, 공부 보너스를 못 채웠으면 공부 미션도 함께 보여요. (토·일 공부도 주 공부 횟수에 들어가요.)"));
     info.appendChild(el("div", "dir", "주간 보너스는 월~금 중 4일 이상 해야 받아요. (공휴일·쉬는 날 포함 하루까지만 쉴 수 있어요)"));
-    line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요");
+    info.appendChild(el("div", "dir", "점수는 체크하면 바로 올라가고, 부모님이 그날을 확인하면 확정돼요. 확인하지 않아도 일주일이 지나면 자동으로 확정돼요. 주간·공부 보너스는 그 주가 끝나고 모든 날이 확인된 뒤에 확정돼요."));
+    line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요 (확정된 포인트만 정산해요)");
     if (state.cfg && state.cfg.vac && state.cfg.vac.on) {
       info.appendChild(el("div", "dir", "방학 모드: 아침 미션이 " + vacShiftOf(BASE_AM) + "분 늦춰져요." + (state.cfg.vac.pmEarly !== false ? " 저녁 미션은 아침부터 열려 있어요." : "")));
     }
@@ -1218,12 +1279,25 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       c.pmhead.appendChild(document.createTextNode(" · " + pmsg));
       renderDetail(c, k.id, sel.key, day);
       c.tv.textContent = totalCoins(k.id).toLocaleString("ko-KR");
+      var cfN = confirmedCoins(k.id), tot = totalCoins(k.id), ucs = unconfirmedDays(k.id);
+      c.pendOn = !!(tot !== cfN || ucs.length);
+      c.pend.hidden = false;
+      c.pend.textContent = "";
+      c.pend.appendChild(document.createTextNode("확정 " + cfN.toLocaleString("ko-KR") + "p"));
+      if (tot !== cfN) { c.pend.appendChild(document.createTextNode(" · 확인 전 ")); c.pend.appendChild(el("b", "", signed(tot - cfN))); }
+      if (ucs.length) c.pend.appendChild(document.createTextNode(" · 미확인 " + ucs.length + "일 ›"));
       var all = amDoneAll(done);
       c.today.textContent = (dayCoins(k.id, day) + (state.kids[k.id].adj[day] || 0)).toLocaleString("ko-KR");
       var reqL = ITEMS.filter(function (i) { return !i.study; }), reqN = reqL.filter(function (i) { return done.indexOf(i.id) > -1; }).length;
       c.fill.style.width = Math.round(reqN / Math.max(1, reqL.length) * 100) + "%";
       c.root.classList.toggle("all", all);
       c.st.textContent = all ? "보너스 +" + BONUS + "p!" : reqN + " / " + reqL.length;
+    });
+    var anyPend = KIDS.some(function (k) { return cards[k.id].pendOn; });
+    KIDS.forEach(function (k) {
+      var pc = cards[k.id];
+      pc.pend.hidden = !anyPend;
+      pc.pend.style.visibility = pc.pendOn ? "" : "hidden"; // 두 카드의 높이가 같도록 자리를 남겨요
     });
     var viewDay = sel.key || day;
     var monD = mondayOf(viewDay), wdsD = weekdaysOf(monD);
@@ -1260,7 +1334,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var kd = state.kids[k.id], cf = cards[k.id].confirm;
       var ok = !!kd.conf[day], aj = kd.adj[day] || 0;
       cf.setAttribute("aria-pressed", ok ? "true" : "false");
-      cf.textContent = ok ? "부모님 확인 완료" + (aj ? " (" + signed(aj) + ")" : "") : "부모님 확인 받기";
+      cf.textContent = ok ? "부모님 확인 완료" + (aj ? " (" + (kd.note && kd.note[day] ? kd.note[day] + " " : "") + signed(aj) + ")" : "") : "부모님 확인 받기";
     });
     renderRules();
     focusActive(false);
@@ -1296,14 +1370,48 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     box.appendChild(l);
     return i;
   }
-  function parentDialog(k) {
-    day = todayKey();
-    var kd = state.kids[k.id], was = !!kd.conf[day];
-    var v = kd.adj[day] || 0;
-    var box = openModal(k.name + " 부모님 확인");
+  // 확인하지 않은 날 목록: 하나씩 확인하거나, 0포인트로 한꺼번에 확인해요.
+  function pendingDialog(k) {
+    var kd = state.kids[k.id];
+    var box = openModal(k.name + " 확인 안 한 날");
+    box.appendChild(el("div", "", "확인하지 않아도 일주일이 지나면 자동으로 확정돼요. 포인트를 더 주려면 날짜를 눌러 확인해 주세요."));
+    var list = unconfirmedDays(k.id);
+    if (!list.length) box.appendChild(el("div", "msg", "확인 안 한 날이 없어요."));
+    list.forEach(function (d) {
+      var row = el("div", "setnow");
+      var left = el("span", "", dateText(d) + " " + DOW_KO[dow(d)] + " · 체크 " + onlyValid(kd.days[d]).length + "개 · " + dayCoins(k.id, d) + "p");
+      var left2 = el("span", "", " · 확정까지 " + Math.max(0, Math.ceil((dayMs(addDaysK(d, 7)) - dayMs(todayKey())) / 86400000)) + "일");
+      var bt = el("button", "go", "확인하기");
+      bt.type = "button";
+      bt.addEventListener("click", function () { parentDialog(k, d); });
+      row.appendChild(left); row.appendChild(left2); row.appendChild(bt);
+      row.style.cssText = "display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:space-between";
+      box.appendChild(row);
+    });
+    var acts = el("div", "acts");
+    if (list.length) {
+      var all0 = el("button", "go", "모두 0포인트로 확인");
+      all0.type = "button";
+      all0.addEventListener("click", function () {
+        list.forEach(function (d) { kd.conf[d] = true; });
+        save(); closeModal(); render();
+      });
+      acts.appendChild(all0);
+    }
+    var no = el("button", "", "닫기");
+    no.type = "button";
+    no.addEventListener("click", closeModal);
+    acts.appendChild(no);
+    box.appendChild(acts);
+  }
+  function parentDialog(k, forDay) {
+    var dk = forDay || todayKey();
+    var kd = state.kids[k.id], was = !!kd.conf[dk];
+    var v = kd.adj[dk] || 0;
+    var box = openModal(k.name + " 부모님 확인" + (forDay && forDay !== todayKey() ? " · " + dateText(dk) + " " + DOW_KO[dow(dk)] : ""));
     var pw = null; // 비밀번호 칸은 확인하기 버튼 바로 위에 만들어요
     // 0포인트로 '확인'만 누를 때는 비밀번호가 필요 없어요. 포인트를 주거나 바꾸거나 빼는 경우에만 물어요.
-    var origAdj = kd.adj[day] || 0;
+    var origAdj = kd.adj[dk] || 0;
     function needPw() { return v !== 0 || origAdj !== 0; }
     box.appendChild(el("div", "", "오늘 점수를 골라 주세요 (" + ADJ_STEP + "p = " + ADJ_STEP * WON + "원 단위)"));
     var step = el("div", "step");
@@ -1329,6 +1437,12 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     box.appendChild(dl);
     var dwon = el("div", "", "");
     box.appendChild(dwon);
+    var nl = el("label", "", "추가 포인트 항목 (예: 심부름, 시험 잘 봄)");
+    var ni = el("input");
+    ni.type = "text"; ni.maxLength = 20; ni.autocomplete = "off"; ni.value = (kd.note && kd.note[dk]) || "";
+    ni.setAttribute("aria-label", "추가 포인트 항목");
+    nl.appendChild(ni);
+    box.appendChild(nl);
     function show() {
       val.textContent = v === 0 ? "0p" : signed(v);
       val.className = "val" + (v > 0 ? " plus" : v < 0 ? " minus" : "");
@@ -1355,8 +1469,10 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     go.type = "button";
     go.addEventListener("click", function () {
       if (needPw() && !pwOk(pw && pw.value)) { msg.textContent = pw && pw.value ? "비밀번호가 맞지 않아요" : "포인트를 줄 때는 비밀번호가 필요해요"; return; }
-      kd.conf[day] = true;
-      if (v) kd.adj[day] = v; else delete kd.adj[day];
+      kd.conf[dk] = true;
+      if (v) kd.adj[dk] = v; else delete kd.adj[dk];
+      if (!kd.note) kd.note = {};
+      if (v && ni.value.trim()) kd.note[dk] = ni.value.trim().slice(0, 20); else delete kd.note[dk];
       save(); closeModal(); render();
     });
     acts.appendChild(go);
@@ -1365,7 +1481,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       undo.type = "button";
       undo.addEventListener("click", function () {
         if (origAdj !== 0 && !pwOk(pw && pw.value)) { msg.textContent = pw && pw.value ? "비밀번호가 맞지 않아요" : "준 포인트가 있어서 비밀번호가 필요해요"; return; }
-        delete kd.conf[day]; delete kd.adj[day];
+        delete kd.conf[dk]; delete kd.adj[dk]; if (kd.note) delete kd.note[dk];
         save(); closeModal(); render();
       });
       acts.appendChild(undo);
@@ -1624,13 +1740,15 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   if (syncUrl) pull();
 
   function settleDialog(k) {
-    var total = totalCoins(k.id);
+    var total = confirmedCoins(k.id);
     var box = openModal(k.name + " 정산");
     box.appendChild(el("div", "", "1p = " + WON + "원으로 바꿔요. " + SETTLE_STEP + "p 단위로 정산할 수 있어요."));
     var now = el("div", "setnow");
-    now.appendChild(document.createTextNode("지금 포인트 "));
+    now.appendChild(document.createTextNode("정산할 수 있는 확정 포인트 "));
     now.appendChild(el("b", "", total.toLocaleString("ko-KR") + "p"));
     box.appendChild(now);
+    var pendTot = totalCoins(k.id) - total;
+    if (pendTot !== 0) box.appendChild(el("div", "", "확인 전 " + signed(pendTot) + "는 부모님이 확인하면 정산할 수 있어요."));
     var acts = el("div", "acts");
     var no = el("button", "", "닫기");
     no.type = "button";
@@ -1679,7 +1797,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     go.type = "button";
     go.addEventListener("click", function () {
       if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
-      if (v > totalCoins(k.id)) { msg.textContent = "포인트가 달라졌어요. 창을 닫고 다시 열어 주세요."; return; }
+      if (v > confirmedCoins(k.id)) { msg.textContent = "포인트가 달라졌어요. 창을 닫고 다시 열어 주세요."; return; }
       var kd = state.kids[k.id];
       kd.carry = (kd.carry || 0) - v;
       if (!kd.log) kd.log = [];
