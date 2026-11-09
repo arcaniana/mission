@@ -10,6 +10,11 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 
+
+
+
+
+
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
@@ -100,7 +105,7 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .wdate.other { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); }
 .wdate.other small { color: inherit; }
 .wdate input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; margin: 0; font-size: 16px; }
-.wd { width: 42px; height: 28px; border-radius: 13px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1; cursor: pointer; padding: 0; font-family: inherit; background: linear-gradient(90deg, var(--wl, transparent) 50%, var(--wr, transparent) 50%); }
+.wd { flex: 1 1 0; width: auto; min-width: 26px; max-width: 42px; height: 28px; border-radius: 13px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1; cursor: pointer; padding: 0; font-family: inherit; background: linear-gradient(90deg, var(--wl, transparent) 50%, var(--wr, transparent) 50%); }
 .wd.rest { border-style: dashed; opacity: 0.6; }
 .wd.now { border-color: var(--ink); }
 .wd.full { color: var(--ok-ink); }
@@ -122,7 +127,7 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .offbtn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .offmsg { display: none; background: var(--surface); border: 2px dashed var(--muted); border-radius: 14px; padding: 18px 10px; text-align: center; font-weight: 700; font-size: 15px; line-height: 1.5; }
 .card.off .offmsg { display: block; }
-.card.sun .amhead, .card.sun .cbar, .card.sun .cmeta .st { display: none; }
+.card.sun .amhead, .card.sun .cbar, .card.sun .cmeta .st, .card.sun .pmhead { display: none; }
 .card.sat .amhead, .card.sat .cbar, .card.sat .cmeta .st, .card.sat .pmhead { display: none; }
 .card .satmsg { display: none; }
 .card.sat .satmsg, .card.sun .satmsg { display: block; margin-top: 6px; background: var(--surface); border: 2px dashed var(--coin); border-radius: 14px; padding: 8px 10px; text-align: center; font-weight: 700; font-size: 13px; line-height: 1.5; }
@@ -171,6 +176,7 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .wb { margin-left: 2px; font-size: 12px; font-weight: 700; color: var(--ok); }
 
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.cols.one { grid-template-columns: 1fr; width: 100%; max-width: 560px; margin-left: auto; margin-right: auto; }
 .card { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .chead {
   background: var(--coin); color: var(--coin-ink);
@@ -182,6 +188,10 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .cname { margin-right: auto; }
 .cright { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .cname, .ctotal { position: relative; top: 0.12em; } /* Jua 글꼴은 글자가 위쪽에 치우쳐 보여서 살짝 내려요 */
+.ctotal { text-align: right; }
+.ctotal .tu { display: block; white-space: nowrap; opacity: 0.5; font-size: 12px; line-height: 1; margin-top: -2px; font-family: var(--font-body); font-weight: 700; }
+.card.unc .tw { opacity: 0.55; }
+.wd.unc { opacity: 0.55; }
 .ctotal { font-family: var(--font-display); font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .settle { font: inherit; font-size: 15px; font-weight: 700; color: var(--coin-ink); background: transparent; border: 2px solid var(--coin-ink); border-radius: 999px; padding: 3px 12px; min-height: 36px; cursor: pointer; }
 .settle:focus-visible, .srow button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
@@ -327,7 +337,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   .cbar { height: 8px; }
   .wdate { font-size: 28px; margin-right: 8px; padding: 6px 14px 8px; border-radius: 18px; }
   .wdate small { font-size: 15px; }
-  .wd { width: 60px; height: 32px; border-radius: 16px; font-size: 14px; }
+  .wd { max-width: 60px; height: 32px; border-radius: 16px; font-size: 14px; }
   .wb { font-size: 15px; }
   .task { min-height: 56px; grid-template-columns: 32px 1fr auto; padding: 8px 12px; gap: 12px; }
   .box { width: 32px; height: 32px; }
@@ -421,6 +431,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     { id: "pw", text: "세수 하기", pay: 1, from: "18:00", until: "21:30", grace: 10, pair: true, note: "둘 중 하나" },
     { id: "ps", text: "샤워 하기", pay: 3, from: "18:00", until: "21:30", grace: 10, pair: true, note: "9시 30분까지" },
     { id: "pj", text: "♥ 개인 공부", optional: true, pay: 0, payText: "?", from: "18:00", until: "22:00" },
+    // sun: 일요일에만 보이는 항목이에요. (선택 항목이라 하루 올 클리어에는 들어가지 않아요)
+    { id: "pp", text: "준비물 준비", optional: true, sun: true, pay: 1, from: "18:00", until: "22:00" },
     { id: "pb", text: "자러 가기", pay: 1, from: "18:00", until: "22:00", note: "10시까지" }
   ];
   var ALL = ITEMS.concat(ITEMS_PM);
@@ -430,8 +442,20 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   DEF_AM.forEach(function (it) { if (it.pay === undefined) it.pay = PAY; delete it.note; });
   DEF_PM.forEach(function (it) { if (STUDY_IDS.indexOf(it.id) > -1) it.study = true; if (it.pay === undefined) it.pay = PAY; delete it.note; });
   var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_TIMES: STUDY_TIMES, STUDY_BONUS: STUDY_BONUS, WON: WON };
-  var KIDS = [{ id: "eoni", name: "어니" }, { id: "hyeoni", name: "혀니" }];
   var KEY = "morning-checklist-v2";
+  // 아이는 1명 또는 2명이에요. 처음 열 때 정하고, '편집'에서 바꿀 수 있어요. (저장된 기록은 지워지지 않아요)
+  var ALLK = [{ id: "eoni", name: "어니" }, { id: "hyeoni", name: "혀니" }];
+  var needSetup = false;
+  var KIDS = (function () {
+    var nk = 2, kn = {};
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) needSetup = true;
+      else { var r = JSON.parse(raw); if (r && r.nk === 1) nk = 1; if (r && r.kn) kn = r.kn; }
+    } catch (e) {}
+    return ALLK.slice(0, nk).map(function (k) { return { id: k.id, name: String(kn[k.id] || k.name) }; });
+  })();
+  function kidsSig(nk, kn) { return nk + "|" + ALLK.slice(0, nk).map(function (k) { return (kn && kn[k.id]) || k.name; }).join("|"); }
 
   // 전체 열리는 시각과 닫히는 시각은 항목별 시간에서 자동으로 정해져요.
   function toMin(s) { var p = s.split(":"); return +p[0] * 60 + +p[1]; }
@@ -490,12 +514,12 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function canCheck(id, kid) {
     if (kid && pairInfo(kid, id)) return false;
     var tk = todayKey(), wd = dow(tk);
-    if (wd === 6) {
-      // 토요일: 이번 주 공부 보너스를 아직 못 채웠으면 공부 미션만 하루 종일 열려요.
-      return !!kid && STUDY_IDS.indexOf(id) > -1 && !weekStudyMet(kid, mondayOf(tk), 5);
+    var isSunItem = ALL.some(function (x) { return x.id === id && x.sun; });
+    if (isSunItem && wd !== 0) return false;
+    if (wd === 6 || wd === 0) {
+      // 토·일: 아침·저녁 미션은 없고, 공부 미션만 하루 종일 열려요. (이미 달성했어도 더 할 수 있어요) 일요일에는 '일요일 전용' 항목도 열려요.
+      return !!kid && (STUDY_IDS.indexOf(id) > -1 || (wd === 0 && isSunItem));
     }
-    if (wd === 0 && STUDY_IDS.indexOf(id) === -1 && ITEMS.some(function (x) { return x.id === id; })) return false;
-    if (wd === 0 && kid && STUDY_IDS.indexOf(id) > -1 && weekStudyMet(kid, mondayOf(tk), 6) && (state.kids[kid].days[tk] || []).indexOf(id) === -1) return false; // 토요일까지 공부 보너스를 채웠으면 일요일 공부는 쉬어요
     if (isHolidayWk(tk)) return true;
     for (var i = 0; i < ALL.length; i++) {
       var it = ALL[i];
@@ -555,6 +579,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var s = { kids: {} };
     s.cfg = (p && p.cfg) || {};
     s.names = (p && p.names) || {};
+    s.nk = p && p.nk === 1 ? 1 : 2;
+    s.kn = (p && p.kn) || {};
     s.cf = (p && typeof p.cf === "string" && p.cf) || todayKey(); // 이 날짜부터는 부모님 확인을 받아야 점수가 확정돼요
     if (p && p.kids) { s.kids = p.kids; s.confirmed = p.confirmed || {}; s.pw = p.pw || ""; s.ts = p.ts || 0; }
     KIDS.forEach(function (k) { if (!s.kids[k.id] || !s.kids[k.id].days) s.kids[k.id] = { days: {} }; if (!s.kids[k.id].adj) s.kids[k.id].adj = {}; if (!s.kids[k.id].conf) s.kids[k.id].conf = {}; if (!s.kids[k.id].off) s.kids[k.id].off = {}; if (!s.kids[k.id].note) s.kids[k.id].note = {}; });
@@ -899,16 +925,17 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   var $ = function (id) { return document.getElementById(id); };
   var check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var cards = {};
-  var WD_NAMES = ["월", "화", "수", "목", "금"];
+  var WD_NAMES = ["월", "화", "수", "목", "금", "토", "일"];
   var DOW_KO = ["일", "월", "화", "수", "목", "금", "토"];
   var sel = { key: "" }; // 아이별로 지금 보고 있는 요일(저장하지 않아요)
 
+  $("cols").classList.toggle("one", KIDS.length === 1);
   KIDS.forEach(function (k) {
     var sec = document.createElement("section");
     sec.className = "card";
     sec.setAttribute("aria-label", k.name + " 체크리스트");
     sec.innerHTML =
-      '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p</span><button type="button" class="settle">정산</button></span></div>' +
+      '<div class="ctop"><div class="chead"><span class="cname"></span><span class="cright"><span class="ctotal"><span class="tv">0</span>p<span class="tu" hidden></span></span><button type="button" class="settle">정산</button></span></div>' +
       '<button type="button" class="cpend" hidden></button>' +
       '<div class="cmeta"><span class="tw">오늘 <b class="today">0</b>p</span><span class="st"></span></div>' +
       '<div class="cbar"><i></i></div></div>' +
@@ -998,6 +1025,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     cards[k.id] = {
       root: sec,
       tv: sec.querySelector(".tv"),
+      tu: sec.querySelector(".tu"),
       today: sec.querySelector(".today"),
       st: sec.querySelector(".st"),
       fill: sec.querySelector(".cbar > i"),
@@ -1026,7 +1054,11 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     render();
   });
   pickEl.addEventListener("click", function () { try { if (pickEl.showPicker) pickEl.showPicker(); } catch (e) {} });
-  dateEl.appendChild(pickEl);
+  // 날짜를 누르면 달력이 열려요. (확인 상태를 날짜마다 보여 주려고 직접 만든 달력이에요)
+  dateEl.setAttribute("role", "button"); dateEl.tabIndex = 0; dateEl.setAttribute("aria-label", "달력 열기");
+  dateEl.style.cursor = "pointer";
+  dateEl.addEventListener("click", function () { calendarDialog(); });
+  dateEl.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); calendarDialog(); } });
   weekEl.appendChild(dateEl);
   var wdEls = WD_NAMES.map(function (nm, i) {
     var d = document.createElement("button");
@@ -1035,7 +1067,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     d.textContent = nm;
     d.setAttribute("aria-label", nm + "요일 결과 보기");
     d.addEventListener("click", function () {
-      var key = weekdaysOf(mondayOf(sel.key || todayKey()))[i];
+      var key = keyOf(dayMs(mondayOf(sel.key || todayKey())) + i * 86400000);
       sel.key = sel.key === key ? "" : key;
       render();
     });
@@ -1200,7 +1232,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     }
     line("주간 아침 보너스", "+" + WEEK_BONUS + "p", "· 월~금 아침 미션을 모두 하면");
     line("주간 올 클리어", "+" + WEEK_ALL_BONUS + "p", "· 월~금 하루 올 클리어를 모두 하면");
-    info.appendChild(el("div", "dir", "토요일에는 주중에 공부 보너스를 달성했으면 푹 쉬고, 못 했으면 공부 미션만 열려서 채울 수 있어요. 일요일은 저녁 미션만 열리고, 공부 보너스를 못 채웠으면 공부 미션도 함께 보여요. (토·일 공부도 주 공부 횟수에 들어가요.)"));
+    info.appendChild(el("div", "dir", "토·일에는 아침·저녁 미션 없이 공부 미션만 하루 종일 열려요. 일요일에는 ‘일요일에만 보여요’로 표시한 항목(준비물 준비)도 함께 열려요. 이미 보너스를 달성했어도 공부 미션은 계속 보이고, 공부하면 체크할 수 있어요. (토·일 공부도 주 공부 횟수에 들어가요.)"));
     info.appendChild(el("div", "dir", "주간 보너스는 월~금 중 4일 이상 해야 받아요. (공휴일·쉬는 날 포함 하루까지만 쉴 수 있어요)"));
     info.appendChild(el("div", "dir", "점수는 체크하면 바로 올라가고, 부모님이 그날을 확인하면 확정돼요. 확인하지 않아도 일주일이 지나면 자동으로 확정돼요. 주간·공부 보너스는 그 주가 끝나고 모든 날이 확인된 뒤에 확정돼요."));
     line("정산", "1p = " + WON + "원", "· 정산할 때 원으로 바꿔요 (확정된 포인트만 정산해요)");
@@ -1218,37 +1250,33 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     KIDS.forEach(function (k) {
       var c = cards[k.id];
       var done = onlyValid(daysOf(k.id)[day]);
-      var monNow = mondayOf(day), satDone = wdNow === 6 && !isOff(k.id, day) && (!STUDY_IDS.length || weekStudyMet(k.id, monNow, 5));
-      var satStudy = wdNow === 6 && !isOff(k.id, day) && !satDone;
-      var sunOn = wdNow === 0 && !isOff(k.id, day) && STUDY_IDS.length > 0;
-      var sunMet = sunOn && weekStudyMet(k.id, monNow, 6);
-      c.root.classList.toggle("off", isOff(k.id, day) || satDone);
-      c.root.classList.toggle("sat", satStudy);
-      var wkDay = satStudy || (wdNow === 0 && !isOff(k.id, day));
+      var monNow = mondayOf(day);
+      var wkEnd = (wdNow === 6 || wdNow === 0) && !isOff(k.id, day);
+      var wkMet = wkEnd && STUDY_IDS.length > 0 && weekStudyMet(k.id, monNow, wdNow === 0 ? 7 : 6);
+      c.root.classList.toggle("off", isOff(k.id, day));
+      c.root.classList.toggle("sat", wkEnd);
+      c.root.classList.toggle("sun", false);
+      var wkDay = wkEnd;
       ["am", "pm"].forEach(function (part) {
         var ulx = c.root.querySelector("ul." + part);
         Array.prototype.forEach.call(ulx.querySelectorAll("ul.gi > li"), function (li) {
           var ids = Array.prototype.map.call(li.querySelectorAll(".task[data-id]"), function (b) { return b.dataset.id; });
           var isStudy = ids.length > 0 && ids.every(function (id) { return STUDY_IDS.indexOf(id) > -1; });
-          if (part === "am") li.hidden = (wkDay && !isStudy) || (sunMet && isStudy);
-          else li.hidden = (satStudy && !isStudy) || (sunMet && isStudy);
+          var isSun = ids.length > 0 && ids.every(function (id) { return ALL.some(function (x) { return x.id === id && x.sun; }); });
+          li.hidden = wkDay ? !(isStudy || (wdNow === 0 && isSun)) : isSun;
         });
         Array.prototype.forEach.call(ulx.querySelectorAll(".grp"), function (g) {
-          g.hidden = (part === "am" ? (wkDay || sunMet) : (satStudy || sunMet)) && !g.querySelector("ul.gi > li:not([hidden])");
+          g.hidden = (wkDay || ITEMS_PM.some(function (x) { return x.sun; })) && !g.querySelector("ul.gi > li:not([hidden])");
         });
         if (part === "am") ulx.style.display = wkDay && !ulx.querySelector(".grp:not([hidden])") ? "none" : "";
       });
-      if (sunOn) {
-        var cnt2 = weekStudyCounts(k.id, monNow), nmOf2 = function (id) { var t = ALL.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
-        c.root.querySelector(".satmsg").textContent = sunMet ? "이번 주 공부 보너스를 달성했어요! 오늘은 공부를 쉬어요 🎉" : "공부 보너스 +" + STUDY_BONUS + "p 달성해봐요! " + STUDY_IDS.map(function (id) { return nmOf2(id) + " " + cnt2[id] + "/" + STUDY_TIMES; }).join(" · ");
+      if (wkEnd) {
+        var cntW = weekStudyCounts(k.id, monNow), nmW = function (id) { var t = ALL.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
+        var prog = STUDY_IDS.map(function (id) { return nmW(id) + " " + cntW[id] + "/" + STUDY_TIMES; }).join(" · ");
+        c.root.querySelector(".satmsg").textContent = STUDY_IDS.length ? (wkMet ? "이번 주 공부 보너스를 달성했어요! 🎉 더 공부해도 좋아요 · " : "공부 보너스 +" + STUDY_BONUS + "p 달성해봐요! ") + prog : "주말이에요. 푹 쉬어요 🎉";
       }
-      if (satStudy) {
-        var cnt = weekStudyCounts(k.id, monNow), nmOf = function (id) { var t = ALL.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
-        c.root.querySelector(".satmsg").textContent = "공부 보너스 +" + STUDY_BONUS + "p 달성해봐요! " + STUDY_IDS.map(function (id) { return nmOf(id) + " " + cnt[id] + "/" + STUDY_TIMES; }).join(" · ");
-      }
-      c.root.classList.toggle("sun", wdNow === 0 && !isOff(k.id, day));
       var ov = state.kids[k.id].off[day];
-      c.root.querySelector(".offmsg").textContent = wdNow === 6 && !ov ? "이번 주 공부 보너스를 달성했어요! 푹 쉬어요 🎉" : ov === "공휴일" ? "오늘은 공휴일이에요" : (typeof ov === "string" && ov.length > 3 ? "오늘은 쉬는 날이에요 (" + ov.slice(3) + ")" : "오늘은 쉬는 날이에요");
+      c.root.querySelector(".offmsg").textContent = ov === "공휴일" ? "오늘은 공휴일이에요" : (typeof ov === "string" && ov.length > 3 ? "오늘은 쉬는 날이에요 (" + ov.slice(3) + ")" : "오늘은 쉬는 날이에요");
       var n = amOnly(done).length;
       var nPm = pmCount(done);
       Array.prototype.forEach.call(c.root.querySelectorAll(".task"), function (b) {
@@ -1261,7 +1289,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         nb.textContent = "어제 세수했어요 · 오늘은 샤워만";
       });
       Array.prototype.forEach.call(c.root.querySelectorAll(".grp .gl"), function (gl) {
-        gl.textContent = rest ? "쉬는 날 · 하루 종일" : gl.dataset.win;
+        gl.textContent = rest ? "쉬는 날 · 하루 종일" : (wdNow === 6 || wdNow === 0 ? "주말 · 하루 종일" : gl.dataset.win);
       });
       var mon = mondayOf(day);
       var as = openState(false);
@@ -1279,8 +1307,13 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       c.pmhead.appendChild(pb);
       c.pmhead.appendChild(document.createTextNode(" · " + pmsg));
       renderDetail(c, k.id, sel.key, day);
-      c.tv.textContent = totalCoins(k.id).toLocaleString("ko-KR");
       var cfN = confirmedCoins(k.id), tot = totalCoins(k.id), ucs = unconfirmedDays(k.id);
+      // 확정된 점수는 또렷하게, 부모님 확인 전 점수는 흐리게 따로 보여줘요.
+      c.tv.textContent = cfN.toLocaleString("ko-KR");
+      c.tu.hidden = tot === cfN;
+      c.tu.textContent = tot === cfN ? "" : signed(tot - cfN);
+      c.tu.title = "부모님 확인 전 점수";
+      c.root.classList.toggle("unc", day > state.cf && !isConf(k.id, day) && onlyValid(daysOf(k.id)[day]).length > 0);
       c.pendOn = !!(tot !== cfN || ucs.length);
       c.pend.hidden = false;
       c.pend.textContent = "";
@@ -1302,6 +1335,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     });
     var viewDay = sel.key || day;
     var monD = mondayOf(viewDay), wdsD = weekdaysOf(monD);
+    for (var wi = 5; wi < 7; wi++) wdsD.push(keyOf(dayMs(monD) + wi * 86400000));
     dateTxt.textContent = "";
     dateTxt.appendChild(document.createTextNode(dateText(viewDay)));
     var dsm = document.createElement("small");
@@ -1310,11 +1344,12 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     dateEl.classList.toggle("other", viewDay !== day);
     if (pickEl.value !== viewDay) pickEl.value = viewDay;
     wdEls.forEach(function (el, i) {
-      var f0 = fullDay(KIDS[0].id, wdsD[i]), f1 = fullDay(KIDS[1].id, wdsD[i]);
+      var f0 = fullDay(KIDS[0].id, wdsD[i]), f1 = KIDS[1] ? fullDay(KIDS[1].id, wdsD[i]) : f0;
       el.style.setProperty("--wl", f0 ? "var(--ok)" : "transparent");
       el.style.setProperty("--wr", f1 ? "var(--ok)" : "transparent");
       el.classList.toggle("full", f0 && f1);
       el.classList.toggle("rest", HOLIDAYS.indexOf(wdsD[i]) > -1 || KIDS.every(function (k) { return isOff(k.id, wdsD[i]); }));
+      el.classList.toggle("unc", wdsD[i] <= day && wdsD[i] > state.cf && KIDS.some(function (k) { return onlyValid(daysOf(k.id)[wdsD[i]]).length > 0 && !isConf(k.id, wdsD[i]); }));
       el.classList.toggle("now", wdsD[i] === day);
       el.classList.toggle("sel", wdsD[i] === sel.key);
     });
@@ -1664,6 +1699,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     state = normalize(r.state);
     state.ts = r.ts;
     if (justMigrated) { justMigrated = false; save(); } else save(true);
+    if (kidsSig(state.nk, state.kn) !== kidsSig(KIDS.length, KIDS.reduce(function (o, k) { o[k.id] = k.name; return o; }, {}))) { location.reload(); return; }
     applyCfg(); rebuildAll();
     $("pwbtn").textContent = state.pw ? "비밀번호 바꾸기" : "비밀번호 설정";
     render();
@@ -1886,7 +1922,15 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var ci = c.items;
     var custom = ci && ci.am && ci.pm && ci.am.length && ci.am.every(itemsOk) && ci.pm.every(itemsOk) &&
       ci.pm.some(function (i) { return i.id === "pw"; }) && ci.pm.some(function (i) { return i.id === "ps"; });
-    if (custom) { am = cloneList(ci.am); pm = cloneList(ci.pm); }
+    if (custom) {
+      am = cloneList(ci.am); pm = cloneList(ci.pm);
+      // 일요일 전용 '준비물 준비' 항목을 예전에 저장한 항목 목록에도 한 번만 넣어 줘요. (지우면 다시 넣지 않아요)
+      if (!c.sunAdded && !pm.some(function (i) { return i.sun; })) {
+        var pbAt = pm.map(function (i) { return i.id; }).indexOf("pb");
+        var add = cloneList(DEF_PM.filter(function (i) { return i.id === "pp"; }));
+        if (add.length && !pm.some(function (i) { return i.id === "pp"; })) pm.splice(pbAt > -1 ? pbAt : pm.length, 0, add[0]);
+      }
+    }
     else {
       am = cloneList(DEF_AM); pm = cloneList(DEF_PM);
       am.concat(pm).forEach(function (i) {
@@ -1895,6 +1939,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       });
     }
     am.concat(pm).forEach(function (i) { i.pay = numOr(i.pay, PAY); i.grace = numOr(i.grace, 0); });
+    pm.forEach(function (i) { if (i.sun) i.optional = true; });
     var ttl = typeof c.title === "string" && c.title.trim() ? c.title.trim().slice(0, 24) : "매일 미션";
     try { document.querySelector("h1").textContent = ttl; document.title = ttl; } catch (e) {}
     BASE_AM = cloneList(am); BASE_PM = cloneList(pm);
@@ -1925,6 +1970,128 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     recompute();
   }
   function rebuildAll() { KIDS.forEach(function (k) { if (cards[k.id] && cards[k.id].rebuild) cards[k.id].rebuild(); }); }
+  // 처음 열었을 때(저장된 기록이 없을 때) 아이 수와 이름을 정해요.
+  function setupDialog() {
+    var box = openModal("처음 오셨네요!");
+    box.appendChild(el("div", "", "아이는 몇 명인가요? 나중에 '편집'에서 바꿀 수 있어요."));
+    var n = 2;
+    var row = el("div", "");
+    row.style.cssText = "display:flex;gap:8px";
+    var b1 = el("button", "", "1명"), b2 = el("button", "", "2명");
+    b1.type = b2.type = "button";
+    [b1, b2].forEach(function (b) { b.style.cssText = "flex:1;font:inherit;font-weight:700;font-size:16px;min-height:44px;border-radius:12px;border:2px solid var(--line);cursor:pointer"; });
+    var i1 = field(box, "첫째 아이 이름", "text"), i2 = field(box, "둘째 아이 이름", "text");
+    i1.maxLength = i2.maxLength = 8; i1.placeholder = "예: 민준"; i2.placeholder = "예: 서연";
+    function pick(v) {
+      n = v; i2.parentNode.hidden = v === 1;
+      [[b1, 1], [b2, 2]].forEach(function (x) { var on = x[1] === v; x[0].style.background = on ? "var(--ok)" : "transparent"; x[0].style.color = on ? "var(--ok-ink)" : "var(--ink)"; x[0].style.borderColor = on ? "var(--ok)" : "var(--line)"; });
+    }
+    b1.addEventListener("click", function () { pick(1); });
+    b2.addEventListener("click", function () { pick(2); });
+    row.appendChild(b1); row.appendChild(b2);
+    box.insertBefore(row, i1.parentNode);
+    var msg = el("div", "msg");
+    box.appendChild(msg);
+    var acts = el("div", "acts");
+    acts.style.flexDirection = "column";
+    var go = el("button", "go", "시작하기");
+    go.type = "button";
+    go.addEventListener("click", function () {
+      var a = i1.value.trim(), b = i2.value.trim();
+      if (!a || (n === 2 && !b)) { msg.textContent = "아이 이름을 적어 주세요"; return; }
+      state.nk = n; state.kn = { eoni: a.slice(0, 8), hyeoni: (b || ALLK[1].name).slice(0, 8) };
+      state.cf = todayKey();
+      save();
+      location.reload();
+    });
+    acts.appendChild(go);
+    var old = el("button", "", "이미 쓰던 기록이 있어요 (시트 연동)");
+    old.type = "button";
+    old.addEventListener("click", function () { syncDialog(); });
+    acts.appendChild(old);
+    box.appendChild(acts);
+    pick(2);
+  }
+  // 달력: 날짜마다 아이별 점(●)으로 보여 줘요. 꽉 찬 점 = 부모님 확인 완료, 속이 빈 점 = 확인 전, 점 없음 = 기록 없음.
+  var calMonth = "";
+  function calendarDialog() {
+    var base = sel.key || todayKey();
+    if (!calMonth || calMonth.length !== 7) calMonth = base.slice(0, 7);
+    function draw() {
+      var box = openModal("달력");
+      var tk = todayKey();
+      var y = +calMonth.slice(0, 4), m = +calMonth.slice(5, 7);
+      var head = el("div", "");
+      head.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px";
+      function nav(txt, d, label) {
+        var b = el("button", "", txt);
+        b.type = "button"; b.setAttribute("aria-label", label);
+        b.style.cssText = "font:inherit;font-weight:700;font-size:18px;min-width:44px;min-height:44px;border-radius:12px;border:2px solid var(--line);background:transparent;color:var(--ink);cursor:pointer";
+        b.addEventListener("click", function () { var ny = y, nm = m + d; if (nm < 1) { nm = 12; ny--; } if (nm > 12) { nm = 1; ny++; } calMonth = ny + "-" + (nm < 10 ? "0" : "") + nm; draw(); });
+        return b;
+      }
+      var tt = el("div", "", y + "년 " + m + "월");
+      tt.style.cssText = "font-family:var(--font-display);font-size:22px";
+      head.appendChild(nav("‹", -1, "이전 달")); head.appendChild(tt); head.appendChild(nav("›", 1, "다음 달"));
+      box.appendChild(head);
+      var grid = el("div", "");
+      grid.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center";
+      ["월", "화", "수", "목", "금", "토", "일"].forEach(function (n, i) { var h = el("div", "", n); h.style.cssText = "font-weight:700;font-size:12px;color:" + (i > 4 ? "var(--muted)" : "var(--ink)"); grid.appendChild(h); });
+      var first = calMonth + "-01", lead = (dow(first) + 6) % 7, nd = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      for (var i = 0; i < lead; i++) grid.appendChild(el("div", ""));
+      for (var d = 1; d <= nd; d++) {
+        (function (d) {
+          var key = calMonth + "-" + (d < 10 ? "0" : "") + d;
+          var b = el("button", "");
+          b.type = "button";
+          var viewing = (sel.key || tk) === key;
+          b.style.cssText = "font:inherit;min-height:48px;padding:2px 0;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink);background:" + (viewing ? "var(--hl)" : "transparent") + ";border:2px solid " + (key === tk ? "var(--ink)" : "var(--line)") + (key > tk ? ";opacity:.45" : "");
+          var num = el("span", "", String(d));
+          num.style.cssText = "font-weight:700;font-size:15px;line-height:1;color:" + (viewing ? "var(--hl-ink)" : "inherit");
+          b.appendChild(num);
+          var dots = el("span", "");
+          dots.style.cssText = "display:flex;gap:3px;min-height:9px";
+          var label = d + "일";
+          KIDS.forEach(function (k) {
+            var kd = state.kids[k.id];
+            var has = (kd.days[key] && onlyValid(kd.days[key]).length) || (kd.hist && kd.hist[key]);
+            if (!has || key > tk) { var sp = el("span", ""); sp.style.cssText = "width:9px;height:9px"; dots.appendChild(sp); return; }
+            var ok = isConf(k.id, key);
+            var dot = el("span", "");
+            var dc = viewing ? "var(--hl-ink)" : "var(--ok)";
+            dot.style.cssText = "width:9px;height:9px;border-radius:50%;box-sizing:border-box;border:2px solid " + dc + ";background:" + (ok ? dc : "transparent") + (ok ? "" : ";opacity:.7");
+            dots.appendChild(dot);
+            label += " " + k.name + (ok ? " 확인 완료" : " 확인 전");
+          });
+          b.setAttribute("aria-label", label);
+          b.appendChild(dots);
+          b.addEventListener("click", function () { sel.key = key === tk ? "" : key; calMonth = ""; closeModal(); render(); });
+          grid.appendChild(b);
+        })(d);
+      }
+      box.appendChild(grid);
+      var lg = el("div", "");
+      lg.style.cssText = "display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:700;align-items:center";
+      function legend(filled, txt) {
+        var w = el("span", ""); w.style.cssText = "display:inline-flex;align-items:center;gap:4px";
+        var dt = el("span", ""); dt.style.cssText = "width:9px;height:9px;border-radius:50%;box-sizing:border-box;border:2px solid var(--ok);background:" + (filled ? "var(--ok)" : "transparent") + (filled ? "" : ";opacity:.6");
+        w.appendChild(dt); w.appendChild(document.createTextNode(txt)); lg.appendChild(w);
+      }
+      legend(true, "부모님 확인 완료"); legend(false, "확인 전");
+      lg.appendChild(document.createTextNode(KIDS.length > 1 ? "점 순서: " + KIDS.map(function (k) { return k.name; }).join(" · ") : ""));
+      box.appendChild(lg);
+      var acts = el("div", "acts");
+      var tb = el("button", "go", "오늘로");
+      tb.type = "button";
+      tb.addEventListener("click", function () { sel.key = ""; calMonth = ""; closeModal(); render(); });
+      var cb = el("button", "", "닫기");
+      cb.type = "button";
+      cb.addEventListener("click", function () { calMonth = ""; closeModal(); });
+      acts.appendChild(tb); acts.appendChild(cb);
+      box.appendChild(acts);
+    }
+    draw();
+  }
   function itemsDialog() {
     var box = openModal("편집");
     box.classList.add("wide");
@@ -1934,6 +2101,19 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var ti = field(box, "앱 제목 (비워 두면 기본 제목)", "text");
     ti.maxLength = 24; ti.placeholder = "매일 미션";
     ti.value = state.cfg && typeof state.cfg.title === "string" ? state.cfg.title : "";
+    var nkSel = el("select");
+    nkSel.setAttribute("aria-label", "아이 수");
+    [[1, "아이 1명"], [2, "아이 2명"]].forEach(function (o) { var op = el("option", "", o[1]); op.value = String(o[0]); nkSel.appendChild(op); });
+    nkSel.value = String(KIDS.length);
+    nkSel.style.cssText = "font:inherit;font-size:16px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);width:100%;box-sizing:border-box";
+    var nkLab = el("label", "", "아이 수 (바꾸면 화면을 새로 불러와요)");
+    nkLab.appendChild(nkSel); box.appendChild(nkLab);
+    var kn1 = field(box, "첫째 아이 이름", "text"), kn2 = field(box, "둘째 아이 이름", "text");
+    kn1.maxLength = kn2.maxLength = 8;
+    kn1.value = KIDS[0].name; kn2.value = KIDS[1] ? KIDS[1].name : ALLK[1].name;
+    var kn2Lab = kn2.parentNode;
+    function showKn2() { kn2Lab.hidden = nkSel.value === "1"; }
+    nkSel.addEventListener("change", showKn2); showKn2();
     var model = { am: cloneList(BASE_AM), pm: cloneList(BASE_PM) };
         var tab = "am", top = "mission";
     var bm = {};
@@ -2064,7 +2244,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         if (it.pair) r.appendChild(el("div", "ichks", "세수·샤워는 둘 중 하나만 고르는 칸이라 이름은 고정이고 삭제할 수 없어요."));
         if (!it.pair) {
           var ck = el("div", "ichks");
-          (tab === "pm" ? [["optional", "선택 (안 해도 올 클리어)"], ["study", "공부 보너스에 포함"]] : [["study", "공부 보너스에 포함 (아침 올 클리어에서는 빠져요)"]]).forEach(function (o) {
+          (tab === "pm" ? [["optional", "선택 (안 해도 올 클리어)"], ["study", "공부 보너스에 포함"], ["sun", "일요일에만 보여요"]] : [["study", "공부 보너스에 포함 (아침 올 클리어에서는 빠져요)"]]).forEach(function (o) {
             var l = el("label", "");
             var c = el("input");
             c.type = "checkbox"; c.checked = !!it[o[0]];
@@ -2123,11 +2303,17 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       delete c.pay;
       c.items = { am: cloneList(model.am), pm: cloneList(model.pm) };
       c.title = ti.value.trim().slice(0, 24);
+      c.sunAdded = true;
       for (var bk in bm) c[bk] = Math.round(Number(bm[bk]));
       if (extraTxt.trim()) c.rulesExtra = extraTxt.trim().slice(0, 1000); else delete c.rulesExtra;
       if (rulesTxt.trim()) c.rulesText = rulesTxt.trim().slice(0, 2000); else delete c.rulesText;
       state.cfg = c;
-      save(); applyCfg(); rebuildAll(); closeModal(); render();
+      var nkN = +nkSel.value === 1 ? 1 : 2, knN = { eoni: kn1.value.trim().slice(0, 8) || KIDS[0].name, hyeoni: kn2.value.trim().slice(0, 8) || (KIDS[1] ? KIDS[1].name : ALLK[1].name) };
+      var kidsChanged = kidsSig(nkN, knN) !== kidsSig(KIDS.length, KIDS.reduce(function (o, k) { o[k.id] = k.name; return o; }, {}));
+      state.nk = nkN; state.kn = knN;
+      save();
+      if (kidsChanged) { location.reload(); return; }
+      applyCfg(); rebuildAll(); closeModal(); render();
     });
     acts.appendChild(go);
     var rs = el("button", "", "처음 항목으로");
@@ -2191,6 +2377,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   $("pwbtn").textContent = state.pw ? "비밀번호 바꾸기" : "비밀번호 설정";
 
   render();
+  if (needSetup) setupDialog();
   // 열리는 시각과 닫히는 시각에 맞춰 화면이 저절로 바뀌도록 20초마다 확인합니다.
   setInterval(render, 20000);
   window.addEventListener("resize", render);
@@ -2199,4 +2386,5 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { focusKey = null; render(); } });
 })();
 </script>
+
 <script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
