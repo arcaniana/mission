@@ -1301,7 +1301,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var kd = state.kids[k.id], was = !!kd.conf[day];
     var v = kd.adj[day] || 0;
     var box = openModal(k.name + " 부모님 확인");
-    var pw = state.pw ? field(box, "비밀번호 (포인트를 줄 때만 넣어요)", "password") : null;
+    var pw = null; // 비밀번호 칸은 확인하기 버튼 바로 위에 만들어요
     // 0포인트로 '확인'만 누를 때는 비밀번호가 필요 없어요. 포인트를 주거나 바꾸거나 빼는 경우에만 물어요.
     var origAdj = kd.adj[day] || 0;
     function needPw() { return v !== 0 || origAdj !== 0; }
@@ -1346,6 +1346,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     });
     dn.addEventListener("blur", function () { show(); });
     show();
+    if (state.pw) pw = field(box, "비밀번호 (포인트를 줄 때만 넣어요)", "password");
     var msg = el("div", "msg");
     msg.setAttribute("role", "alert");
     box.appendChild(msg);
@@ -1374,7 +1375,6 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     no.addEventListener("click", closeModal);
     acts.appendChild(no);
     box.appendChild(acts);
-    if (pw) pw.focus();
   }
   KIDS.forEach(function (k) {
     cards[k.id].confirm.addEventListener("click", function () { parentDialog(k); });
