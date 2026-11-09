@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>
-<title>어니 혀니 매일 미션</title>
+<title>매일 미션</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2f62e0">
 <link rel="icon" href="icon-192.png">
@@ -94,8 +94,12 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .pmhead b { font-family: var(--font-display); font-weight: 400; font-size: 16px; }
 .lock b { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
 .week { position: sticky; top: var(--hh, 44px); z-index: 25; background: color-mix(in srgb, var(--bg) 90%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 5px; padding: 10px 0 14px; margin-bottom: -10px; }
-.wdate { font-family: var(--font-display); font-size: 15px; line-height: 1; margin-right: 4px; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.wd { width: 46px; height: 26px; border-radius: 13px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1; cursor: pointer; padding: 0; font-family: inherit; background: linear-gradient(90deg, var(--wl, transparent) 50%, var(--wr, transparent) 50%); }
+.wdate { position: relative; font-family: var(--font-display); font-size: 21px; line-height: 1; margin-right: 4px; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; border: 2px solid var(--line); border-radius: 14px; padding: 5px 8px 6px; background: var(--surface); cursor: pointer; }
+.wdate small { font-size: 12px; margin-left: 3px; font-weight: 700; color: var(--muted); font-family: var(--font-body); }
+.wdate.other { background: var(--hl); border-color: var(--hl); color: var(--hl-ink); }
+.wdate.other small { color: inherit; }
+.wdate input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; margin: 0; font-size: 16px; }
+.wd { width: 42px; height: 28px; border-radius: 13px; border: 2px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1; cursor: pointer; padding: 0; font-family: inherit; background: linear-gradient(90deg, var(--wl, transparent) 50%, var(--wr, transparent) 50%); }
 .wd.rest { border-style: dashed; opacity: 0.6; }
 .wd.now { border-color: var(--ink); }
 .wd.full { color: var(--ok-ink); }
@@ -117,8 +121,8 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 
 .offbtn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .offmsg { display: none; background: var(--surface); border: 2px dashed var(--muted); border-radius: 14px; padding: 18px 10px; text-align: center; font-weight: 700; font-size: 15px; line-height: 1.5; }
 .card.off .offmsg { display: block; }
-.card.sun ul.am, .card.sun .amhead, .card.sun .cbar, .card.sun .cmeta .st { display: none; }
-.card.sat ul.am, .card.sat .amhead, .card.sat .cbar, .card.sat .cmeta .st, .card.sat .pmhead { display: none; }
+.card.sun .amhead, .card.sun .cbar, .card.sun .cmeta .st { display: none; }
+.card.sat .amhead, .card.sat .cbar, .card.sat .cmeta .st, .card.sat .pmhead { display: none; }
 .card .satmsg { display: none; }
 .card.sat .satmsg, .card.sun .satmsg { display: block; margin-top: 6px; background: var(--surface); border: 2px dashed var(--coin); border-radius: 14px; padding: 8px 10px; text-align: center; font-weight: 700; font-size: 13px; line-height: 1.5; }
 .card li[hidden], .card .grp[hidden] { display: none !important; }
@@ -317,7 +321,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   .tw { font-size: 16px; padding: 3px 16px; }
   .tw .today { font-size: 30px; }
   .cbar { height: 8px; }
-  .wdate { font-size: 18px; margin-right: 4px; }
+  .wdate { font-size: 28px; margin-right: 8px; padding: 6px 14px 8px; border-radius: 18px; }
+  .wdate small { font-size: 15px; }
   .wd { width: 60px; height: 32px; border-radius: 16px; font-size: 14px; }
   .wb { font-size: 15px; }
   .task { min-height: 56px; grid-template-columns: 32px 1fr auto; padding: 8px 12px; gap: 12px; }
@@ -350,7 +355,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 </svg>
 <main class="wrap">
   <header class="top">
-    <h1>어니 혀니 매일 미션</h1>
+    <h1>매일 미션</h1>
     <button type="button" class="offbtn" id="offbtn">미션<br>설정</button>
   </header>
 
@@ -485,7 +490,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       // 토요일: 이번 주 공부 보너스를 아직 못 채웠으면 공부 미션만 하루 종일 열려요.
       return !!kid && STUDY_IDS.indexOf(id) > -1 && !weekStudyMet(kid, mondayOf(tk), 5);
     }
-    if (wd === 0 && ITEMS.some(function (x) { return x.id === id; })) return false;
+    if (wd === 0 && STUDY_IDS.indexOf(id) === -1 && ITEMS.some(function (x) { return x.id === id; })) return false;
     if (wd === 0 && kid && STUDY_IDS.indexOf(id) > -1 && weekStudyMet(kid, mondayOf(tk), 6) && (state.kids[kid].days[tk] || []).indexOf(id) === -1) return false; // 토요일까지 공부 보너스를 채웠으면 일요일 공부는 쉬어요
     if (isHolidayWk(tk)) return true;
     for (var i = 0; i < ALL.length; i++) {
@@ -545,6 +550,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function normalize(p) {
     var s = { kids: {} };
     s.cfg = (p && p.cfg) || {};
+    s.names = (p && p.names) || {};
     if (p && p.kids) { s.kids = p.kids; s.confirmed = p.confirmed || {}; s.pw = p.pw || ""; s.ts = p.ts || 0; }
     KIDS.forEach(function (k) { if (!s.kids[k.id] || !s.kids[k.id].days) s.kids[k.id] = { days: {} }; if (!s.kids[k.id].adj) s.kids[k.id].adj = {}; if (!s.kids[k.id].conf) s.kids[k.id].conf = {}; if (!s.kids[k.id].off) s.kids[k.id].off = {}; });
     if (p && p.kids && !(p.ver >= 2)) { migrate(s); justMigrated = true; }
@@ -559,11 +565,18 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
 
   var state = load();
+  // 브라우저가 저장 공간을 마음대로 비우지 않도록 요청해요. (시크릿 탭에서는 소용없어요)
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   if (justMigrated) { justMigrated = false; save(); }
   var day = todayKey();
   var valid = ALL.map(function (i) { return i.id; });
   var amIds = ITEMS.map(function (i) { return i.id; });
   function onlyValid(arr) { return (arr || []).filter(function (id) { return valid.indexOf(id) > -1; }); }
+  // 아침 올 클리어: 공부로 표시한 아침 미션은 빼고, 나머지를 모두 했는지 봐요. (공부 미션은 주간 공부 보너스로 따로 세요)
+  function amDoneAll(arr) {
+    var v = onlyValid(arr), req = ITEMS.filter(function (i) { return !i.study; });
+    return req.length > 0 && req.every(function (i) { return v.indexOf(i.id) > -1; });
+  }
   function amOnly(arr) { return onlyValid(arr).filter(function (id) { return amIds.indexOf(id) > -1; }); }
   function payOf(id) { for (var i = 0; i < ALL.length; i++) if (ALL[i].id === id) return ALL[i].pay === undefined ? PAY : ALL[i].pay; return 0; }
   function pmCount(arr) {
@@ -624,13 +637,13 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   // 하루 올 클리어(아침 + 저녁) 상태
   function allClearState(kid, key, arr) {
-    if (amOnly(arr).length !== ITEMS.length || !pmOthers(arr)) return "no";
+    if (!amDoneAll(arr) || !pmOthers(arr)) return "no";
     return studyState(kid, key, arr);
   }
   function dayCoins(kid, key) {
     var arr = daysOf(kid)[key], v = onlyValid(arr), n = 0;
     v.forEach(function (id) { n += payOf(id); });
-    if (amOnly(arr).length === ITEMS.length) n += BONUS;
+    if (amDoneAll(arr)) n += BONUS;
     var st = allClearState(kid, key, arr);
     if (st === "ok" || st === "pending") n += ALL_BONUS;
     return n;
@@ -643,7 +656,14 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   // 그날 부모님이 '쉬는 날'로 정한 날 (체험학습·개인 사정 등)
   function isOff(kid, k) { return !!state.kids[kid].off[k]; }
-  function fullDay(kid, k) { return amOnly(daysOf(kid)[k]).length === ITEMS.length; }
+  // 지난 기록: 오래된 주는 합계로 접히지만, 날짜별로 한 일은 '지난 기록'으로 남겨 둬요. (몇 달 전 날짜도 볼 수 있어요)
+  function dayIds(kid, k) {
+    var d = daysOf(kid)[k];
+    if (d) return d;
+    var h = (state.kids[kid].hist || {})[k];
+    return h ? h.i : undefined;
+  }
+  function fullDay(kid, k) { return amDoneAll(dayIds(kid, k)); }
   // 그 주 월~금(쉬는 평일 제외)을 모두 성공했는지
   // 평일에 쉰 날(공휴일 포함)이 2일 이상이면 주간 보너스는 없어요. 월~금 중 4일은 해야 받아요.
   function offDays(kid, mon) {
@@ -688,7 +708,15 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       Object.keys(weeks).forEach(function (m) {
         var sum = weekExtra(k.id, m);
         var keys = Object.keys(ds).filter(function (d) { return mondayOf(d) === m; });
-        keys.forEach(function (d) { sum += dayCoins(k.id, d); });
+        if (!kd.hist) kd.hist = {};
+        keys.forEach(function (d) {
+          var dc = dayCoins(k.id, d);
+          sum += dc;
+          var ids = onlyValid(ds[d]);
+          kd.hist[d] = { i: ids, c: dc + (kd.adj[d] || 0) };
+          if (kd.off[d]) kd.hist[d].o = kd.off[d];
+          ids.forEach(function (id) { for (var q = 0; q < ALL.length; q++) if (ALL[q].id === id) state.names[id] = ALL[q].text; });
+        });
         keys.forEach(function (d) { delete ds[d]; });
         kd.carry = (kd.carry || 0) + sum;
         changed = true;
@@ -698,11 +726,24 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var kd = state.kids[k.id];
       Object.keys(kd.adj).concat(Object.keys(kd.conf), Object.keys(kd.off)).forEach(function (d) {
         if (mondayOf(d) < limit) {
+          if (!kd.hist) kd.hist = {};
+          if (!kd.hist[d] && (kd.off[d] || kd.adj[d])) { kd.hist[d] = { i: [], c: kd.adj[d] || 0 }; if (kd.off[d]) kd.hist[d].o = kd.off[d]; }
           if (kd.adj[d]) { kd.carry = (kd.carry || 0) + kd.adj[d]; }
           delete kd.adj[d]; delete kd.conf[d]; delete kd.off[d]; changed = true;
         }
       });
     });
+    // 시트 한 칸에는 약 5만 자까지만 들어가서, 너무 길어지면 가장 오래된 지난 기록부터 덜어내요.
+    try {
+      var guard = 0;
+      while (JSON.stringify(state).length > 40000 && guard++ < 2000) {
+        var oldest = "", ok = null;
+        KIDS.forEach(function (k) { Object.keys(state.kids[k.id].hist || {}).forEach(function (d) { if (!oldest || d < oldest) { oldest = d; } }); });
+        if (!oldest) break;
+        KIDS.forEach(function (k) { if (state.kids[k.id].hist) delete state.kids[k.id].hist[oldest]; });
+        changed = true;
+      }
+    } catch (e) {}
     if (changed) save(true);
   }
 
@@ -714,10 +755,33 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var arr = onlyValid(daysOf(kid)[key]);
     box.hidden = false;
     box.textContent = "";
+    var limit0 = keyOf(dayMs(mondayOf(today)) - 7 * 86400000);
+    if (mondayOf(key) < limit0) {
+      // 몇 주 전 날짜: 그날 체크한 것만 '지난 기록'에서 보여줘요.
+      var hh = (state.kids[kid].hist || {})[key];
+      var oh = document.createElement("div");
+      oh.className = "dh";
+      var oa = document.createElement("span");
+      oa.textContent = key.slice(0, 4) + "." + dateText(key) + " " + DOW_KO[dow(key)];
+      var ob = document.createElement("span");
+      ob.textContent = hh ? (hh.o ? (hh.o === "공휴일" ? "공휴일" : "쉬는 날") + (hh.c ? " (" + signed(hh.c) + ")" : "") : hh.c.toLocaleString("ko-KR") + "p") : "기록 없음";
+      oh.appendChild(oa); oh.appendChild(ob);
+      box.appendChild(oh);
+      if (hh && hh.i.length) {
+        var og = el("div", "dg", "체크한 미션 " + hh.i.length + "개");
+        var ol = el("div", "dl", "");
+        hh.i.forEach(function (id) {
+          var nm = ALL.filter(function (x) { return x.id === id; })[0];
+          ol.appendChild(el("span", "dc ok", nm ? nm.text : ((state.names || {})[id] || id)));
+        });
+        box.appendChild(og); box.appendChild(ol);
+      } else if (!hh) box.appendChild(el("div", "dg", "이 날짜는 남아 있는 기록이 없어요."));
+      return;
+    }
     var h = document.createElement("div");
     h.className = "dh";
     var a = document.createElement("span");
-    a.textContent = dateText(key) + " " + WD_NAMES[weekdaysOf(mondayOf(key)).indexOf(key)];
+    a.textContent = dateText(key) + " " + DOW_KO[dow(key)];
     var b = document.createElement("span");
     var aj = state.kids[kid].adj[key] || 0;
     b.textContent = isOff(kid, key) ? (state.kids[kid].off[key] === "공휴일" ? "공휴일" : "쉬는 날") + (aj ? " (부모님 " + signed(aj) + ")" : "") : key > today ? "아직이에요" : (dayCoins(kid, key) + aj).toLocaleString("ko-KR") + "p" + (aj ? " (부모님 " + signed(aj) + ")" : "");
@@ -725,7 +789,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     box.appendChild(h);
     if (key <= today && !isOff(kid, key)) {
       var bg = el("div", "dbg");
-      var amFull = amOnly(arr).length === ITEMS.length, st = allClearState(kid, key, arr);
+      var amFull = amDoneAll(arr), st = allClearState(kid, key, arr);
       if (amFull) bg.appendChild(el("span", "db", "아침 올 클리어 +" + BONUS + "p"));
       if (st === "ok") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p"));
       if (st === "pending") bg.appendChild(el("span", "db", "하루 올 클리어 +" + ALL_BONUS + "p (임시)"));
@@ -734,7 +798,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       if (isWeekdayK(key) && STUDY_IDS.length) {
         var mon0 = mondayOf(key), cnt = weekStudyCounts(kid, mon0), got = weekStudyMet(kid, mon0);
         var parts = STUDY_IDS.map(function (id) {
-          var nm = ITEMS_PM.filter(function (x) { return x.id === id; })[0];
+          var nm = ALL.filter(function (x) { return x.id === id; })[0];
           return (nm ? nm.text : id) + " " + cnt[id] + "/" + STUDY_TIMES;
         });
         box.appendChild(el("div", "dstudy" + (got ? " ok" : ""), "이번 주 공부 " + parts.join(" · ") + (got ? " · 공부 보너스 +" + STUDY_BONUS + "p" : "")));
@@ -779,6 +843,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   var check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   var cards = {};
   var WD_NAMES = ["월", "화", "수", "목", "금"];
+  var DOW_KO = ["일", "월", "화", "수", "목", "금", "토"];
   var sel = { key: "" }; // 아이별로 지금 보고 있는 요일(저장하지 않아요)
 
   KIDS.forEach(function (k) {
@@ -889,6 +954,19 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   // 날짜·요일 줄은 어니·혀니가 함께 써요. 요일 칸의 왼쪽 반은 어니, 오른쪽 반은 혀니예요.
   var weekEl = $("week"), dateEl = document.createElement("span"), wbEl = document.createElement("span");
   dateEl.className = "wdate";
+  var dateTxt = document.createElement("span");
+  dateEl.appendChild(dateTxt);
+  var pickEl = document.createElement("input");
+  pickEl.type = "date";
+  pickEl.setAttribute("aria-label", "날짜 고르기");
+  pickEl.addEventListener("change", function () {
+    var v = pickEl.value;
+    if (!/^\d{4}-\d\d-\d\d$/.test(v)) return;
+    sel.key = v === todayKey() ? "" : v;
+    render();
+  });
+  pickEl.addEventListener("click", function () { try { if (pickEl.showPicker) pickEl.showPicker(); } catch (e) {} });
+  dateEl.appendChild(pickEl);
   weekEl.appendChild(dateEl);
   var wdEls = WD_NAMES.map(function (nm, i) {
     var d = document.createElement("button");
@@ -897,7 +975,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     d.textContent = nm;
     d.setAttribute("aria-label", nm + "요일 결과 보기");
     d.addEventListener("click", function () {
-      var key = weekdaysOf(mondayOf(todayKey()))[i];
+      var key = weekdaysOf(mondayOf(sel.key || todayKey()))[i];
       sel.key = sel.key === key ? "" : key;
       render();
     });
@@ -1007,9 +1085,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       info.appendChild(r);
     }
     info.appendChild(el("div", "dir", "아침 미션은 차례대로 열려요. 1번을 체크하면 2번, 2번을 체크하면 3번, 3번을 체크하면 나머지가 열려요. 앞 미션을 안 했어도 그 미션의 시작 시각이 되면 열려요. (닫히는 시간은 그대로예요)"));
-    line("아침 올 클리어", "+" + BONUS + "p", "· 아침 미션을 모두 하면");
+    line("아침 올 클리어", "+" + BONUS + "p", ITEMS.some(function (i) { return i.study; }) ? "· 공부 미션을 뺀 아침 미션을 모두 하면" : "· 아침 미션을 모두 하면");
     line("하루 올 클리어", "+" + ALL_BONUS + "p", "· 아침·저녁 미션을 모두 하면");
-    var studyNames = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
+    var studyNames = ALL.filter(function (i) { return i.study; }).map(function (i) { return i.text; });
     if (studyNames.length) {
       line("공부 보너스", "+" + STUDY_BONUS + "p", "· 한 주(월~일, 토·일 공부 포함) " + studyNames.join("·") + " 항목마다 " + STUDY_TIMES + "번 이상 하면");
       var ex = el("div", "dir", "평일에는 공부 미션이 2개 이상이면 일단 하루 올 클리어로 쳐요. 일요일까지 공부 항목마다 " + STUDY_TIMES + "번이 안 되면 그 올 클리어는 취소돼요. (토·일에 공부해서 채워도 돼요.) 목요일까지 항목마다 " + STUDY_TIMES + "번을 채우면 금요일 공부는 안 해도 올 클리어예요.");
@@ -1039,20 +1117,26 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var sunMet = sunOn && weekStudyMet(k.id, monNow, 6);
       c.root.classList.toggle("off", isOff(k.id, day) || satDone);
       c.root.classList.toggle("sat", satStudy);
-      Array.prototype.forEach.call(c.root.querySelectorAll("ul.pm ul.gi > li"), function (li) {
-        var ids = Array.prototype.map.call(li.querySelectorAll(".task[data-id]"), function (b) { return b.dataset.id; });
-        var isStudy = ids.length > 0 && ids.every(function (id) { return STUDY_IDS.indexOf(id) > -1; });
-        li.hidden = (satStudy && !isStudy) || (sunMet && isStudy);
-      });
-      Array.prototype.forEach.call(c.root.querySelectorAll("ul.pm .grp"), function (g) {
-        g.hidden = (satStudy || sunMet) && !g.querySelector("ul.gi > li:not([hidden])");
+      var wkDay = satStudy || (wdNow === 0 && !isOff(k.id, day));
+      ["am", "pm"].forEach(function (part) {
+        var ulx = c.root.querySelector("ul." + part);
+        Array.prototype.forEach.call(ulx.querySelectorAll("ul.gi > li"), function (li) {
+          var ids = Array.prototype.map.call(li.querySelectorAll(".task[data-id]"), function (b) { return b.dataset.id; });
+          var isStudy = ids.length > 0 && ids.every(function (id) { return STUDY_IDS.indexOf(id) > -1; });
+          if (part === "am") li.hidden = (wkDay && !isStudy) || (sunMet && isStudy);
+          else li.hidden = (satStudy && !isStudy) || (sunMet && isStudy);
+        });
+        Array.prototype.forEach.call(ulx.querySelectorAll(".grp"), function (g) {
+          g.hidden = (part === "am" ? (wkDay || sunMet) : (satStudy || sunMet)) && !g.querySelector("ul.gi > li:not([hidden])");
+        });
+        if (part === "am") ulx.style.display = wkDay && !ulx.querySelector(".grp:not([hidden])") ? "none" : "";
       });
       if (sunOn) {
-        var cnt2 = weekStudyCounts(k.id, monNow), nmOf2 = function (id) { var t = ITEMS_PM.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
+        var cnt2 = weekStudyCounts(k.id, monNow), nmOf2 = function (id) { var t = ALL.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
         c.root.querySelector(".satmsg").textContent = sunMet ? "이번 주 공부 보너스를 달성했어요! 오늘은 공부를 쉬어요 🎉" : "공부 보너스 +" + STUDY_BONUS + "p 달성해봐요! " + STUDY_IDS.map(function (id) { return nmOf2(id) + " " + cnt2[id] + "/" + STUDY_TIMES; }).join(" · ");
       }
       if (satStudy) {
-        var cnt = weekStudyCounts(k.id, monNow), nmOf = function (id) { var t = ITEMS_PM.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
+        var cnt = weekStudyCounts(k.id, monNow), nmOf = function (id) { var t = ALL.filter(function (x) { return x.id === id; })[0]; return t ? t.text : id; };
         c.root.querySelector(".satmsg").textContent = "공부 보너스 +" + STUDY_BONUS + "p 달성해봐요! " + STUDY_IDS.map(function (id) { return nmOf(id) + " " + cnt[id] + "/" + STUDY_TIMES; }).join(" · ");
       }
       c.root.classList.toggle("sun", wdNow === 0 && !isOff(k.id, day));
@@ -1087,16 +1171,24 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       pb.textContent = "저녁 미션";
       c.pmhead.appendChild(pb);
       c.pmhead.appendChild(document.createTextNode(" · " + pmsg));
-      renderDetail(c, k.id, sel.key && weekdaysOf(mon).indexOf(sel.key) > -1 ? sel.key : "", day);
+      renderDetail(c, k.id, sel.key, day);
       c.tv.textContent = totalCoins(k.id).toLocaleString("ko-KR");
-      var all = n === ITEMS.length;
+      var all = amDoneAll(done);
       c.today.textContent = (dayCoins(k.id, day) + (state.kids[k.id].adj[day] || 0)).toLocaleString("ko-KR");
-      c.fill.style.width = Math.round(n / ITEMS.length * 100) + "%";
+      var reqL = ITEMS.filter(function (i) { return !i.study; }), reqN = reqL.filter(function (i) { return done.indexOf(i.id) > -1; }).length;
+      c.fill.style.width = Math.round(reqN / Math.max(1, reqL.length) * 100) + "%";
       c.root.classList.toggle("all", all);
-      c.st.textContent = all ? "보너스 +" + BONUS + "p!" : n + " / " + ITEMS.length;
+      c.st.textContent = all ? "보너스 +" + BONUS + "p!" : reqN + " / " + reqL.length;
     });
-    var monD = mondayOf(day), wdsD = weekdaysOf(monD);
-    dateEl.textContent = dateText(day);
+    var viewDay = sel.key || day;
+    var monD = mondayOf(viewDay), wdsD = weekdaysOf(monD);
+    dateTxt.textContent = "";
+    dateTxt.appendChild(document.createTextNode(dateText(viewDay)));
+    var dsm = document.createElement("small");
+    dsm.textContent = DOW_KO[dow(viewDay)];
+    dateTxt.appendChild(dsm);
+    dateEl.classList.toggle("other", viewDay !== day);
+    if (pickEl.value !== viewDay) pickEl.value = viewDay;
     wdEls.forEach(function (el, i) {
       var f0 = fullDay(KIDS[0].id, wdsD[i]), f1 = fullDay(KIDS[1].id, wdsD[i]);
       el.style.setProperty("--wl", f0 ? "var(--ok)" : "transparent");
@@ -1108,7 +1200,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     });
     var wbNames = KIDS.filter(function (k) { return weekDone(k.id, monD); }).map(function (k) { return k.name; });
     var waNames = KIDS.filter(function (k) { return weekAllClear(k.id, monD); }).map(function (k) { return k.name; });
-    var wbParts = [];
+    var wbParts = [], oldView = monD < keyOf(dayMs(mondayOf(day)) - 7 * 86400000);
+    if (oldView) { wbNames = []; waNames = []; }
     if (wbNames.length) wbParts.push("주간 아침 보너스 " + wbNames.join("·") + " +" + WEEK_BONUS + "p!");
     if (waNames.length) wbParts.push("주간 올 클리어 " + waNames.join("·") + " +" + WEEK_ALL_BONUS + "p!");
     wbEl.textContent = wbParts.join("  ");
@@ -1318,12 +1411,29 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
 
   // ---- 구글 시트 연동 ----
   var SYNC_KEY = "morning-sync-url";
+  // 여기에 시트 웹 앱 주소(…/exec)를 넣어 두면 어느 기기에서 열어도 자동으로 시트와 연결돼요.
+  var BUILT_IN_URL = "";
   var syncUrl = "";
   try { syncUrl = localStorage.getItem(SYNC_KEY) || ""; } catch (e) {}
+  try {
+    var qs = /[?&]sync=([^&#]+)/.exec(location.search);
+    if (qs) { var qu = decodeURIComponent(qs[1]); if (/^https:\/\/script\.google\.com\/.+\/exec/.test(qu)) { syncUrl = qu; try { localStorage.setItem(SYNC_KEY, qu); } catch (e) {} } }
+  } catch (e) {}
+  if (!syncUrl && BUILT_IN_URL) syncUrl = BUILT_IN_URL;
   var syncState = syncUrl ? "wait" : "";
-  var pushTimer = null, pushing = false, dirty = false, pulling = false;
+  var pushTimer = null, pushing = false, dirty = false, pulling = false, pulledOnce = false;
+  // 기록이 얼마나 쌓였는지 대략 세요. 비어 있는 기기가 시트의 많은 기록을 덮어쓰지 못하게 비교할 때 써요.
+  function richness(st) {
+    var n = 0;
+    try {
+      Object.keys(st.kids || {}).forEach(function (k) { var kd = st.kids[k] || {}; n += Object.keys(kd.days || {}).length; if (kd.carry) n += 5; });
+      var it = st.cfg && st.cfg.items; if (it) n += ((it.am || []).length + (it.pm || []).length);
+    } catch (e) {}
+    return n;
+  }
   function setSyncText() {
-    var t = !syncUrl ? "이 기기에 저장돼요." : syncState === "ok" ? "시트와 연동 중" : syncState === "err" ? "연동 오류 (인터넷 확인)" : "시트 연결 중…";
+    $("savemsg").style.color = syncUrl ? "" : "#c0392b";
+    var t = !syncUrl ? "⚠ 시트 미연결: 이 기기에만 저장돼요" : syncState === "ok" ? "시트와 연동 중" : syncState === "err" ? "연동 오류 (인터넷 확인)" : "시트 연결 중…";
     $("savemsg").textContent = t;
     $("syncbtn").textContent = syncUrl ? "연동 설정" : "시트 연동";
   }
@@ -1341,14 +1451,28 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   function schedulePush() {
     if (!syncUrl) return;
     dirty = true;
+    if (!pulledOnce) { pull(); return; }
     clearTimeout(pushTimer);
     pushTimer = setTimeout(push, 600);
+  }
+  // 시트의 '기록' 탭에 날짜·아이별로 한 줄씩 쌓일 내용이에요.
+  function logRows() {
+    var rows = [];
+    try {
+      var d = todayKey();
+      KIDS.forEach(function (k) {
+        var ids = (state.kids[k.id].days || {})[d] || [];
+        var names = ids.map(function (id) { for (var i = 0; i < ALL.length; i++) if (ALL[i].id === id) return ALL[i].text; return id; });
+        rows.push([d, k.name, names.length, names.join(", "), dayCoins(k.id, d), totalCoins(k.id)]);
+      });
+    } catch (e) {}
+    return rows;
   }
   function push() {
     if (!syncUrl || pushing) { if (pushing) schedulePush(); return; }
     pushing = true;
     var sent = state.ts;
-    fetchJson(syncUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ ts: sent, state: state }) })
+    fetchJson(syncUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ ts: sent, state: state, log: logRows() }) })
       .then(function (r) {
         pushing = false;
         if (r && r.conflict && r.state) { dirty = false; adopt(r); }
@@ -1360,15 +1484,20 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   }
   function pull() {
     if (!syncUrl || pulling || pushing) return;
-    if (dirty) { push(); return; }
+    if (dirty && pulledOnce) { push(); return; }
     pulling = true;
     fetchJson(syncUrl, { cache: "no-store" })
       .then(function (r) {
         pulling = false;
         if (!r || !r.ok) throw new Error("bad");
         syncState = "ok";
+        var first = !pulledOnce;
+        pulledOnce = true;
         if (!r.state) { if (!state.ts) state.ts = Date.now(); save(true); dirty = true; push(); }
-        else if (r.ts > (state.ts || 0)) { if ($("modal").hidden) adopt(r); }
+        else if ((r.ts > (state.ts || 0) || (first && richness(r.state) > richness(state))) && $("modal").hidden) {
+          if (first && r.ts <= (state.ts || 0)) { try { localStorage.setItem(KEY + "-backup", JSON.stringify(state)); } catch (e) {} r.ts = Math.max(r.ts, (state.ts || 0) + 1); }
+          adopt(r);
+        }
         else if (r.ts < (state.ts || 0)) { dirty = true; push(); }
         setSyncText();
       })
@@ -1519,7 +1648,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     ALL = ITEMS.concat(ITEMS_PM);
     valid = ALL.map(function (i) { return i.id; });
     amIds = ITEMS.map(function (i) { return i.id; });
-    STUDY_IDS = ITEMS_PM.filter(function (i) { return i.study; }).map(function (i) { return i.id; });
+    STUDY_IDS = ALL.filter(function (i) { return i.study; }).map(function (i) { return i.id; });
     PM_TOTAL = ITEMS_PM.filter(function (it) { return !it.pair && !it.optional; }).length + 1;
     OPEN_AT = toObj(Math.min.apply(null, ITEMS.map(function (i) { return toMin(i.from); })));
     CLOSE_AT = toObj(Math.max.apply(null, ITEMS.map(function (i) { return toMin(i.until); })));
@@ -1544,6 +1673,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       });
     }
     am.concat(pm).forEach(function (i) { i.pay = numOr(i.pay, PAY); i.grace = numOr(i.grace, 0); });
+    var ttl = typeof c.title === "string" && c.title.trim() ? c.title.trim().slice(0, 24) : "매일 미션";
+    try { document.querySelector("h1").textContent = ttl; document.title = ttl; } catch (e) {}
     BASE_AM = cloneList(am); BASE_PM = cloneList(pm);
     // 방학 모드: 아침 미션은 시간을 늦추고(또는 당기고), 저녁 미션은 마감은 그대로 두고 아침부터 바로 열어 둬요.
     var vc = c.vac, vOn = !!(vc && vc.on), sh = 0, firstFrom = 0;
@@ -1577,6 +1708,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var help = el("div", "");
     box.appendChild(help);
     var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var ti = field(box, "앱 제목 (비워 두면 기본 제목)", "text");
+    ti.maxLength = 24; ti.placeholder = "매일 미션";
+    ti.value = state.cfg && typeof state.cfg.title === "string" ? state.cfg.title : "";
     var model = { am: cloneList(BASE_AM), pm: cloneList(BASE_PM) };
         var tab = "am", top = "mission";
     var bm = {};
@@ -1669,9 +1803,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         fs.appendChild(fld("유예(분)", "number", it.grace || 0, function (v) { it.grace = v === "" ? NaN : Math.round(Number(v)); }, { min: "0", max: "120", inputmode: "numeric" }));
         r.appendChild(fs);
         if (it.pair) r.appendChild(el("div", "ichks", "세수·샤워는 둘 중 하나만 고르는 칸이라 이름은 고정이고 삭제할 수 없어요."));
-        if (tab === "pm" && !it.pair) {
+        if (!it.pair) {
           var ck = el("div", "ichks");
-          [["optional", "선택 (안 해도 올 클리어)"], ["study", "공부 보너스에 포함"]].forEach(function (o) {
+          (tab === "pm" ? [["optional", "선택 (안 해도 올 클리어)"], ["study", "공부 보너스에 포함"]] : [["study", "공부 보너스에 포함 (아침 올 클리어에서는 빠져요)"]]).forEach(function (o) {
             var l = el("label", "");
             var c = el("input");
             c.type = "checkbox"; c.checked = !!it[o[0]];
@@ -1700,6 +1834,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       for (var t in names) {
         var list = model[t];
         if (!list.length) return names[t] + " 미션이 하나는 있어야 해요";
+        if (t === "am" && list.every(function (x) { return x.study; })) return "아침 미션 중 공부가 아닌 칸이 하나는 있어야 해요 (아침 올 클리어 기준이에요)";
         for (var i = 0; i < list.length; i++) {
           var it = list[i], where = names[t] + " " + (i + 1) + "번째 칸: ";
           it.text = (it.text || "").trim();
@@ -1727,6 +1862,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var c = state.cfg || {};
       delete c.pay;
       c.items = { am: cloneList(model.am), pm: cloneList(model.pm) };
+      c.title = ti.value.trim().slice(0, 24);
       for (var bk in bm) c[bk] = Math.round(Number(bm[bk]));
       state.cfg = c;
       save(); applyCfg(); rebuildAll(); closeModal(); render();
@@ -1801,4 +1937,4 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { focusKey = null; render(); } });
 })();
 </script>
-<script>try { if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js"); } catch (e) {}</script>
+<script>if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
