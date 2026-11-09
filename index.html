@@ -425,7 +425,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
   var DEF_AM = JSON.parse(JSON.stringify(ITEMS)), DEF_PM = JSON.parse(JSON.stringify(ITEMS_PM));
   DEF_AM.forEach(function (it) { if (it.pay === undefined) it.pay = PAY; delete it.note; });
   DEF_PM.forEach(function (it) { if (STUDY_IDS.indexOf(it.id) > -1) it.study = true; if (it.pay === undefined) it.pay = PAY; delete it.note; });
-  var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_TIMES: STUDY_TIMES, STUDY_BONUS: STUDY_BONUS };
+  var DEFC = { BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_TIMES: STUDY_TIMES, STUDY_BONUS: STUDY_BONUS, WON: WON };
   var KIDS = [{ id: "eoni", name: "어니" }, { id: "hyeoni", name: "혀니" }];
   var KEY = "morning-checklist-v2";
 
@@ -1055,6 +1055,39 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     }, 250);
   }
 
+  // 안내 문구 안의 {이름}은 편집에서 바꾼 값으로 자동으로 바뀌어요. (점수를 바꾸면 안내도 같이 바뀌어요)
+  var RULE_TOKENS = [["아침올클리어", "BONUS"], ["하루올클리어", "ALL_BONUS"], ["주간아침", "WEEK_BONUS"], ["주간올클리어", "WEEK_ALL_BONUS"], ["공부보너스", "STUDY_BONUS"], ["공부횟수", "STUDY_TIMES"], ["공부미션", "STUDY_NAMES"], ["원", "WON"]];
+  function ruleVal(key) {
+    if (key === "BONUS") return BONUS;
+    if (key === "ALL_BONUS") return ALL_BONUS;
+    if (key === "WEEK_BONUS") return WEEK_BONUS;
+    if (key === "WEEK_ALL_BONUS") return WEEK_ALL_BONUS;
+    if (key === "STUDY_BONUS") return STUDY_BONUS;
+    if (key === "STUDY_TIMES") return STUDY_TIMES;
+    if (key === "WON") return WON;
+    if (key === "STUDY_NAMES") return ALL.filter(function (i) { return i.study; }).map(function (i) { return i.text; }).join("·");
+    return "";
+  }
+  function fillRuleTokens(t) {
+    return t.replace(/\{([^{}]+)\}/g, function (m, nm) {
+      for (var i = 0; i < RULE_TOKENS.length; i++) if (RULE_TOKENS[i][0] === nm.trim()) return String(ruleVal(RULE_TOKENS[i][1]));
+      return m;
+    });
+  }
+  // tpl=true면 점수 자리에 {이름}을 넣어요. 그대로 저장하면 점수를 바꿀 때 안내도 따라 바뀌어요.
+  function autoRulesLines(tpl) {
+    var v = function (nm, key) { return tpl ? "{" + nm + "}" : String(ruleVal(key)); };
+    var L = [];
+    L.push("아침 미션은 차례대로 열려요. 1번을 체크하면 2번, 2번을 체크하면 3번, 3번을 체크하면 나머지가 열려요. 앞 미션을 안 했어도 그 미션의 시작 시각이 되면 열려요. (닫히는 시간은 그대로예요)");
+    L.push("아침 올 클리어 +" + v("아침올클리어", "BONUS") + "p " + (ITEMS.some(function (i) { return i.study; }) ? "· 공부 미션을 뺀 아침 미션을 모두 하면" : "· 아침 미션을 모두 하면"));
+    L.push("하루 올 클리어 +" + v("하루올클리어", "ALL_BONUS") + "p · 아침·저녁 미션을 모두 하면");
+    if (ALL.some(function (i) { return i.study; })) L.push("공부 보너스 +" + v("공부보너스", "STUDY_BONUS") + "p · 한 주(월~일, 토·일 공부 포함) " + v("공부미션", "STUDY_NAMES") + " 항목마다 " + v("공부횟수", "STUDY_TIMES") + "번 이상 하면");
+    L.push("주간 아침 보너스 +" + v("주간아침", "WEEK_BONUS") + "p · 월~금 아침 미션을 모두 하면");
+    L.push("주간 올 클리어 +" + v("주간올클리어", "WEEK_ALL_BONUS") + "p · 월~금 하루 올 클리어를 모두 하면");
+    L.push("주간 보너스는 월~금 중 4일 이상 해야 받아요. (공휴일·쉬는 날 포함 하루까지만 쉴 수 있어요)");
+    L.push("정산 1p = " + v("원", "WON") + "원 · 정산할 때 원으로 바꿔요");
+    return L;
+  }
   function renderRules() {
     var root = $("rules");
     root.textContent = "";
@@ -1077,6 +1110,17 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     root.appendChild(info);
     info.style.cssText = "display:flex;flex-direction:column;gap:4px;margin-top:4px";
     showR();
+    function addExtraRules() {
+      var xt = state.cfg && typeof state.cfg.rulesExtra === "string" ? state.cfg.rulesExtra.trim() : "";
+      if (!xt) return;
+      xt.split(/\r?\n/).forEach(function (ln) { if (ln.trim()) { var d = el("div", "dir", fillRuleTokens(ln.trim())); d.style.cssText = "border-top:1.5px dashed var(--line);padding-top:4px"; info.appendChild(d); } });
+    }
+    var customTxt = state.cfg && typeof state.cfg.rulesText === "string" ? state.cfg.rulesText.trim() : "";
+    if (customTxt) {
+      customTxt.split(/\r?\n/).forEach(function (ln) { if (ln.trim()) info.appendChild(el("div", "dir", fillRuleTokens(ln.trim()))); });
+      addExtraRules();
+      return;
+    }
     function line(name, val, desc) {
       var r = el("div", "dir");
       r.appendChild(el("b", "", name + " "));
@@ -1101,6 +1145,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     if (state.cfg && state.cfg.vac && state.cfg.vac.on) {
       info.appendChild(el("div", "dir", "방학 모드: 아침 미션이 " + vacShiftOf(BASE_AM) + "분 늦춰져요." + (state.cfg.vac.pmEarly !== false ? " 저녁 미션은 아침부터 열려 있어요." : "")));
     }
+    addExtraRules();
   }
 
   function render() {
@@ -1256,7 +1301,10 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var kd = state.kids[k.id], was = !!kd.conf[day];
     var v = kd.adj[day] || 0;
     var box = openModal(k.name + " 부모님 확인");
-    var pw = state.pw ? field(box, "비밀번호", "password") : null;
+    var pw = state.pw ? field(box, "비밀번호 (포인트를 줄 때만 넣어요)", "password") : null;
+    // 0포인트로 '확인'만 누를 때는 비밀번호가 필요 없어요. 포인트를 주거나 바꾸거나 빼는 경우에만 물어요.
+    var origAdj = kd.adj[day] || 0;
+    function needPw() { return v !== 0 || origAdj !== 0; }
     box.appendChild(el("div", "", "오늘 점수를 골라 주세요 (" + ADJ_STEP + "p = " + ADJ_STEP * WON + "원 단위)"));
     var step = el("div", "step");
     var minus = el("button", "", "−" + ADJ_STEP), plus = el("button", "", "+" + ADJ_STEP), val = el("div", "val");
@@ -1270,14 +1318,33 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var sc = el("div", "scale");
     ["−" + ADJ_MAX, "0", "+" + ADJ_MAX].forEach(function (t) { sc.appendChild(el("span", "", t)); });
     box.appendChild(sc);
+    // 슬라이드(±20p)보다 더 많이 주거나 빼고 싶을 때는 아래 칸에 포인트를 직접 적어요.
+    var ADJ_HARD = 9999;
+    var dl = el("label", "chk");
+    dl.appendChild(el("span", "", "더 주고 싶을 때 직접 입력 (포인트, 빼려면 −)"));
+    var dn = el("input", "numin");
+    dn.type = "number"; dn.step = "1"; dn.min = -ADJ_HARD; dn.max = ADJ_HARD; dn.inputMode = "numeric";
+    dn.setAttribute("aria-label", "직접 입력한 추가 포인트");
+    dl.appendChild(dn);
+    box.appendChild(dl);
+    var dwon = el("div", "", "");
+    box.appendChild(dwon);
     function show() {
       val.textContent = v === 0 ? "0p" : signed(v);
       val.className = "val" + (v > 0 ? " plus" : v < 0 ? " minus" : "");
       r.value = v;
+      if (document.activeElement !== dn) dn.value = v === 0 ? "" : String(v);
+      dwon.textContent = v === 0 ? "" : "= " + (v < 0 ? "−" : "+") + (Math.abs(v) * WON).toLocaleString("ko-KR") + "원";
     }
-    minus.addEventListener("click", function () { v = Math.max(-ADJ_MAX, v - ADJ_STEP); show(); });
-    plus.addEventListener("click", function () { v = Math.min(ADJ_MAX, v + ADJ_STEP); show(); });
+    minus.addEventListener("click", function () { v = Math.max(-ADJ_HARD, v - ADJ_STEP); show(); });
+    plus.addEventListener("click", function () { v = Math.min(ADJ_HARD, v + ADJ_STEP); show(); });
     r.addEventListener("input", function () { v = Math.round(+r.value / ADJ_STEP) * ADJ_STEP; show(); });
+    dn.addEventListener("input", function () {
+      var n = Math.round(Number(dn.value));
+      v = dn.value === "" || !isFinite(n) ? 0 : Math.max(-ADJ_HARD, Math.min(ADJ_HARD, n));
+      show();
+    });
+    dn.addEventListener("blur", function () { show(); });
     show();
     var msg = el("div", "msg");
     msg.setAttribute("role", "alert");
@@ -1286,7 +1353,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var go = el("button", "go", was ? "수정하기" : "확인하기");
     go.type = "button";
     go.addEventListener("click", function () {
-      if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+      if (needPw() && !pwOk(pw && pw.value)) { msg.textContent = pw && pw.value ? "비밀번호가 맞지 않아요" : "포인트를 줄 때는 비밀번호가 필요해요"; return; }
       kd.conf[day] = true;
       if (v) kd.adj[day] = v; else delete kd.adj[day];
       save(); closeModal(); render();
@@ -1296,7 +1363,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       var undo = el("button", "", "확인 취소");
       undo.type = "button";
       undo.addEventListener("click", function () {
-        if (!pwOk(pw && pw.value)) { msg.textContent = "비밀번호가 맞지 않아요"; return; }
+        if (origAdj !== 0 && !pwOk(pw && pw.value)) { msg.textContent = pw && pw.value ? "비밀번호가 맞지 않아요" : "준 포인트가 있어서 비밀번호가 필요해요"; return; }
         delete kd.conf[day]; delete kd.adj[day];
         save(); closeModal(); render();
       });
@@ -1699,6 +1766,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     STUDY_STEP = numOr(c.STUDY_STEP, 120) || 120;
     STUDY_TIMES = numOr(c.STUDY_TIMES, DEFC.STUDY_TIMES) || DEFC.STUDY_TIMES;
     STUDY_BONUS = numOr(c.STUDY_BONUS, DEFC.STUDY_BONUS);
+    WON = numOr(c.WON, DEFC.WON) || DEFC.WON;
     recompute();
   }
   function rebuildAll() { KIDS.forEach(function (k) { if (cards[k.id] && cards[k.id].rebuild) cards[k.id].rebuild(); }); }
@@ -1714,7 +1782,9 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     var model = { am: cloneList(BASE_AM), pm: cloneList(BASE_PM) };
         var tab = "am", top = "mission";
     var bm = {};
-    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "WEEK_ALL_BONUS", "STUDY_TIMES", "STUDY_BONUS"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_TIMES: STUDY_TIMES, STUDY_BONUS: STUDY_BONUS }[k]); });
+    var rulesTxt = state.cfg && typeof state.cfg.rulesText === "string" ? state.cfg.rulesText : "";
+    ["BONUS", "ALL_BONUS", "WEEK_BONUS", "WEEK_ALL_BONUS", "STUDY_TIMES", "STUDY_BONUS", "WON"].forEach(function (k) { bm[k] = String({ BONUS: BONUS, ALL_BONUS: ALL_BONUS, WEEK_BONUS: WEEK_BONUS, WEEK_ALL_BONUS: WEEK_ALL_BONUS, STUDY_TIMES: STUDY_TIMES, STUDY_BONUS: STUDY_BONUS, WON: WON }[k]); });
+    var extraTxt = state.cfg && typeof state.cfg.rulesExtra === "string" ? state.cfg.rulesExtra : "";
     var ttabs = el("div", "itabs"), ttabBtn = {};
     [["mission", "미션"], ["bonus", "보너스"]].forEach(function (t) {
       var b = el("button", "", t[1]);
@@ -1760,7 +1830,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       return b;
     }
     function drawBonus() {
-      [["BONUS", "아침 올 클리어"], ["ALL_BONUS", "하루 올 클리어"], ["WEEK_BONUS", "주간 아침 보너스 (월~금 아침)"], ["WEEK_ALL_BONUS", "주간 올 클리어 (월~금 하루 올 클리어)"], ["STUDY_TIMES", "공부 보너스 기준 (공부 항목마다 한 주 횟수)"], ["STUDY_BONUS", "공부 보너스 (기준 달성 시)"]].forEach(function (row) {
+      [["BONUS", "아침 올 클리어"], ["ALL_BONUS", "하루 올 클리어"], ["WEEK_BONUS", "주간 아침 보너스 (월~금 아침)"], ["WEEK_ALL_BONUS", "주간 올 클리어 (월~금 하루 올 클리어)"], ["STUDY_TIMES", "공부 보너스 기준 (공부 항목마다 한 주 횟수)"], ["STUDY_BONUS", "공부 보너스 (기준 달성 시)"], ["WON", "1포인트 = 몇 원 (정산할 때 바꿔요)"]].forEach(function (row) {
         var l = el("label", "chk");
         l.appendChild(el("span", "", row[1]));
         var i = el("input", "numin");
@@ -1770,6 +1840,40 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         l.appendChild(i);
         body.appendChild(l);
       });
+      body.appendChild(el("div", "", "추가 설명 (보너스 안내 맨 아래에 덧붙여 보여요. 예: 정산은 매주 일요일에 해요)"));
+      var ex = el("textarea", "numin");
+      ex.rows = 3; ex.maxLength = 1000; ex.value = extraTxt;
+      ex.style.cssText = "width:100%;box-sizing:border-box;font:inherit;padding:8px;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)";
+      ex.placeholder = "한 줄에 하나씩 적어요";
+      ex.addEventListener("input", function () { extraTxt = ex.value; });
+      body.appendChild(ex);
+      body.appendChild(el("div", "", "보너스 안내 문구 (화면 아래 '보너스 안내'에 나와요. 비워 두면 위 설정으로 전부 자동으로 만들어요. 아래 버튼으로 점수 자리를 넣으면 점수를 바꿀 때 안내도 자동으로 바뀌어요)"));
+      var ta = el("textarea", "numin");
+      ta.rows = 8; ta.maxLength = 2000; ta.value = rulesTxt;
+      ta.style.cssText = "width:100%;box-sizing:border-box;font:inherit;padding:8px;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)";
+      ta.placeholder = "한 줄에 하나씩 적어요";
+      ta.addEventListener("input", function () { rulesTxt = ta.value; });
+      body.appendChild(ta);
+      var ld = el("button", "", "자동 문구 불러오기");
+      ld.type = "button";
+      ld.addEventListener("click", function () { rulesTxt = autoRulesLines(true).join("\n"); ta.value = rulesTxt; });
+      body.appendChild(ld);
+      var tk = el("div", "", "자리 넣기: 눌러서 글 속에 넣어요");
+      body.appendChild(tk);
+      var tkb = el("div", "", "");
+      tkb.style.cssText = "display:flex;flex-wrap:wrap;gap:4px";
+      RULE_TOKENS.forEach(function (t) {
+        var b = el("button", "", "{" + t[0] + "}");
+        b.type = "button";
+        b.addEventListener("click", function () {
+          var a = ta.selectionStart == null ? ta.value.length : ta.selectionStart, z = ta.selectionEnd == null ? a : ta.selectionEnd;
+          ta.value = ta.value.slice(0, a) + "{" + t[0] + "}" + ta.value.slice(z);
+          rulesTxt = ta.value;
+          try { ta.focus(); ta.setSelectionRange(a + t[0].length + 2, a + t[0].length + 2); } catch (e) {}
+        });
+        tkb.appendChild(b);
+      });
+      body.appendChild(tkb);
     }
     function draw() {
       ttabBtn.mission.setAttribute("aria-pressed", top === "mission" ? "true" : "false");
@@ -1849,6 +1953,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
         var raw = String(bm[k]).trim(), n = Math.round(Number(raw));
         if (raw === "" || !isFinite(n) || n < 0 || n > 99999) { top = "bonus"; draw(); return "보너스는 0 이상의 숫자예요"; }
       }
+      if (Math.round(Number(bm.WON)) < 1) { top = "bonus"; draw(); return "1포인트는 1원 이상이어야 해요"; }
       if (Math.round(Number(bm.STUDY_TIMES)) < 1) { top = "bonus"; draw(); return "공부 횟수 기준은 1 이상이어야 해요"; }
       return "";
     }
@@ -1864,6 +1969,8 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
       c.items = { am: cloneList(model.am), pm: cloneList(model.pm) };
       c.title = ti.value.trim().slice(0, 24);
       for (var bk in bm) c[bk] = Math.round(Number(bm[bk]));
+      if (extraTxt.trim()) c.rulesExtra = extraTxt.trim().slice(0, 1000); else delete c.rulesExtra;
+      if (rulesTxt.trim()) c.rulesText = rulesTxt.trim().slice(0, 2000); else delete c.rulesText;
       state.cfg = c;
       save(); applyCfg(); rebuildAll(); closeModal(); render();
     });
@@ -1872,7 +1979,7 @@ ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: col
     rs.type = "button";
     rs.addEventListener("click", function () {
       if (top === "mission") { model = { am: cloneList(DEF_AM), pm: cloneList(DEF_PM) }; msg.textContent = "처음 항목으로 되돌렸어요. 저장하기를 눌러야 적용돼요."; }
-      else { for (var k in DEFC) bm[k] = String(DEFC[k]); msg.textContent = "보너스를 기본값으로 되돌렸어요. 저장하기를 눌러야 적용돼요."; }
+      else { for (var k in DEFC) bm[k] = String(DEFC[k]); rulesTxt = ""; extraTxt = ""; msg.textContent = "보너스를 기본값으로 되돌렸어요. 저장하기를 눌러야 적용돼요."; }
       draw();
     });
     acts.appendChild(rs);
